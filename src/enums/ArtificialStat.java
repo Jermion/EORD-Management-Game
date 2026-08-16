@@ -1,6 +1,6 @@
 package enums;
 
-public enum ArtificalStat {
+public enum ArtificialStat {
     TEMPERATURE,
     STORAGE,
     POWER,
