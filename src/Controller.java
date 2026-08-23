@@ -4,9 +4,23 @@ import enums.BioCondition;
 import enums.Sin;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
+import enums.River;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
+import javafx.scene.text.Font;
+import javafx.util.Duration;
+
+import java.io.IOException;
+import java.nio.file.Files;
+
+import java.nio.file.Paths;
 
 
 public class Controller {
@@ -52,6 +66,24 @@ public class Controller {
     private ScrollPane statusScrollPane;
 
     @FXML
+    private StackPane transitionPane;
+
+    @FXML
+    private VBox transitionContent;
+
+    @FXML
+    private ImageView riverTransitionImage;
+
+    @FXML
+    private Label transitionTitle;
+
+    @FXML
+    private Label transitionQuote;
+
+    @FXML
+    private Label transitionFooter;
+
+    @FXML
     public void initialize() {
         creature = new Creature();
         startTime = System.currentTimeMillis();
@@ -61,10 +93,14 @@ public class Controller {
                 this::updateStatusLabels,
                 this::addDialogue,
                 this::addStatus,
-                this::addEventStatus
+                this::addEventStatus,
+                this::addNoActionStatus,
+                this::startRiverTransition
                 );
 
         updateStatusLabels();
+
+        loadFonts();
 
         dialogueBox.heightProperty().addListener((observableValue, oldValue, newValue) -> {
             dialogueScrollPane.setVvalue(1.0);
@@ -74,7 +110,9 @@ public class Controller {
             statusScrollPane.setVvalue(1.0);
         });
 
-        eventManager.start();
+        startIntroSequence();
+
+
     }
 
     private String getTimestamp() {
@@ -95,11 +133,25 @@ public class Controller {
         statusBox.getChildren().add(newStatus);
     }
 
-    private void addEventStatus(String message) {
+    private void addEventStatus(String message, int actionCount) {
         Label newStatus = new Label(getTimestamp() + " " + message);
 
         newStatus.setWrapText(true);
-        newStatus.setTextFill(Color.MAROON);
+        switch (actionCount) {
+            case 1 -> newStatus.setTextFill(Color.MAROON);
+            case 2 -> newStatus.setTextFill(Color.PURPLE);
+            case 3 -> newStatus.setTextFill(Color.ORANGERED);
+            default -> newStatus.setTextFill(Color.RED);
+        }
+
+        statusBox.getChildren().add(newStatus);
+    }
+
+    private void addNoActionStatus(String message) {
+        Label newStatus = new Label(getTimestamp() + " " + message);
+
+        newStatus.setWrapText(true);
+        newStatus.setTextFill(Color.YELLOW);
 
         statusBox.getChildren().add(newStatus);
     }
@@ -227,6 +279,8 @@ public class Controller {
                 "   [GLUTTONY HAS INCREASED.]\n" +
                 "   [PRIDE HAS INCREASED.]");
 
+
+        eventManager.nourishUsed();
     }
 
     @FXML
@@ -240,6 +294,7 @@ public class Controller {
                 "   [PRIDE HAS DECREASED.]\n" +
                 "   [WRATH HAS INCREASED.]");
 
+        eventManager.restrainUsed();
     }
 
     @FXML
@@ -256,4 +311,215 @@ public class Controller {
         eventManager.purgeUsed();
     }
 
+    private void startIntroSequence() {
+        transitionTitle.setText("SESSION INITIALIZING");
+        transitionTitle.setTextFill(Color.web("#D9E1E8"));
+
+
+        transitionQuote.setText(
+                "Stability is not the absence of suffering.\n" +
+                        "It is the balance that survives it.\n\n" +
+                        "A thing that should not live has begun to breathe."
+        );
+
+        transitionFooter.setText(
+                "OBSERVE CAREFULLY"
+        );
+        transitionFooter.setTextFill(Color.web("#A61B1B"));
+
+        riverTransitionImage.setImage(new Image(
+                Paths.get("images", "Logo.png").toUri().toString()
+        ));
+
+        transitionPane.setVisible(true);
+        transitionPane.setOpacity(1.0);
+        transitionContent.setOpacity(0.0);
+
+        FadeTransition fadeContentIn = new FadeTransition(
+                Duration.seconds(2),
+                transitionContent
+        );
+
+        fadeContentIn.setFromValue(0.0);
+        fadeContentIn.setToValue(1.0);
+
+        PauseTransition holdTransition = new PauseTransition(Duration.seconds(5));
+
+        FadeTransition fadeContentOut = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionContent
+        );
+
+        fadeContentOut.setFromValue(1.0);
+        fadeContentOut.setToValue(0.0);
+
+        FadeTransition fadeFromBlack = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionPane
+        );
+
+        fadeFromBlack.setFromValue(1.0);
+        fadeFromBlack.setToValue(0.0);
+
+        SequentialTransition introTransition = new SequentialTransition(
+                fadeContentIn,
+                holdTransition,
+                fadeContentOut,
+                fadeFromBlack
+        );
+
+        introTransition.setOnFinished(event -> {
+            transitionPane.setVisible(false);
+
+            eventManager.start();
+        });
+
+        introTransition.play();
+
+
+    }
+
+    private void startRiverTransition(River nextRiver) {
+        riverTransitionImage.setImage(null);
+        transitionFooter.setText("");
+        transitionQuote.setTextFill(Color.WHITE);
+        switch (nextRiver) {
+            case RIVER_I -> {
+                transitionTitle.setText("RIVER I");
+                transitionTitle.setTextFill(Color.WHITE);
+                transitionQuote.setText("");
+            }
+            case RIVER_II -> {
+                transitionTitle.setText("RIVER II");
+                transitionTitle.setTextFill(Color.web("#A61B1B"));
+                transitionQuote.setText(
+                        "The rivers widen to give way for the rushing water,\n" +
+                                "so that life's existence may prosper."
+                );
+            }
+            case RIVER_III -> {
+                transitionTitle.setText("RIVER III");
+                transitionTitle.setTextFill(Color.WHITE);
+                transitionQuote.setText("");
+            }
+        }
+
+        transitionPane.setVisible(true);
+        transitionPane.setOpacity(0.0);
+        transitionContent.setOpacity(0.0);
+
+        FadeTransition fadeToBlack = new FadeTransition(
+                Duration.seconds(1),
+                transitionPane
+        );
+
+        fadeToBlack.setFromValue(0.0);
+        fadeToBlack.setToValue(1.0);
+
+        FadeTransition fadeContentIn = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionContent
+        );
+
+        fadeContentIn.setFromValue(0.0);
+        fadeContentIn.setToValue(1.0);
+
+        PauseTransition holdTransition = new PauseTransition(
+                Duration.seconds(4)
+        );
+
+        FadeTransition fadeContentOut = new FadeTransition(
+                Duration.seconds(1),
+                transitionContent
+        );
+
+        fadeContentOut.setFromValue(1.0);
+        fadeContentOut.setToValue(0.0);
+
+        FadeTransition fadeFromBlack = new FadeTransition(
+                Duration.seconds(1),
+                transitionPane
+        );
+
+        fadeFromBlack.setFromValue(1.0);
+        fadeFromBlack.setToValue(0.0);
+
+        SequentialTransition transition = new SequentialTransition(
+                 fadeToBlack, fadeContentIn, holdTransition, fadeContentOut, fadeFromBlack
+        );
+
+        transition.setOnFinished(event -> {
+            transitionPane.setVisible(false);
+
+            switch (nextRiver) {
+                case RIVER_I -> {
+                    // Nothing There
+                }
+                case RIVER_II -> {
+                    addRiverDialogue("The current feels different. Do you dare fight against it?");
+
+                    addRiverMessage(
+                            "...And the echos of self rely on no being...\n\n" +
+                                    "The River remembers what the vessel has forgotten.\n\n" +
+                                    "What gazes inward will eventually gaze back..."
+                    );
+                }
+                case RIVER_III -> {
+                    // Nothing rn
+                }
+            }
+            eventManager.finishRiverTransition(nextRiver);
+        });
+
+        transition.play();
+    }
+
+    private void loadFonts() {
+        try {
+            Font quoteFont = Font.loadFont(
+                    Files.newInputStream(
+                            Paths.get("fonts", "AritaBuriKR-SemiBold.ttf")
+                    ),
+                    34
+            );
+
+            Font titleFont = Font.loadFont(
+                    Files.newInputStream(
+                            Paths.get("fonts", "norwester.ttf")
+                    ),
+                    28
+            );
+
+            Font footerFont = Font.loadFont(
+                    Files.newInputStream(
+                            Paths.get("fonts", "norwester.ttf")
+                    ),
+                    20
+            );
+
+            transitionQuote.setFont(quoteFont);
+            transitionTitle.setFont(titleFont);
+            transitionFooter.setFont(footerFont);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addRiverDialogue(String message) {
+        Label newMessage = new Label("???: " + message);
+
+        newMessage.setWrapText(true);
+        newMessage.setTextFill(Color.web("#B83232"));
+
+        dialogueBox.getChildren().add(newMessage);
+    }
+
+    private void addRiverMessage(String message) {
+        Label newStatus = new Label(message);
+
+        newStatus.setWrapText(true);
+        newStatus.setTextFill(Color.web("#B83232"));
+        statusBox.getChildren().add(newStatus);
+    }
 }

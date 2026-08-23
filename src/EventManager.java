@@ -1,35 +1,57 @@
 import enums.ArtificialStat;
 import enums.EventType;
+import enums.River;
 import enums.Sin;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
+
+import java.util.function.BiConsumer;
 
 import java.util.function.Consumer;
 
 public class EventManager {
     private Creature creature;
 
+    private River currentRiver;
+    private int riverProgress;
+
     private EventType currentEvent;
+
+    private boolean usedRestrain;
+    private boolean usedPurge;
     private boolean usedSuppress;
     private boolean usedCoolant;
+    private boolean usedRepair;
+    private boolean usedNourish;
+    private boolean usedCharge;
+    private boolean usedStimulate;
 
     private PauseTransition eventTimer;
 
     private Runnable updateStatusLabels;
     private Consumer<String> addDialogue;
     private Consumer<String> addStatus;
-    private Consumer<String> addEventStatus;
+    private BiConsumer<String, Integer> addEventStatus;
+    private Consumer<String> addNoActionStatus;
+    private Consumer<River> startRiverTransition;
 
     public EventManager(Creature creature, Runnable updateStatusLabels, Consumer<String> addDialogue,
-                        Consumer<String> addStatus, Consumer<String> addEventStatus) {
+                        Consumer<String> addStatus, BiConsumer<String,
+                    Integer> addEventStatus, Consumer<String> addNoActionStatus, Consumer<River> startRiverTransition) {
 
         this.creature = creature;
         this.updateStatusLabels = updateStatusLabels;
         this.addDialogue = addDialogue;
         this.addStatus = addStatus;
         this.addEventStatus = addEventStatus;
+        this.addNoActionStatus = addNoActionStatus;
+        this.startRiverTransition = startRiverTransition;
+
+        currentRiver = River.RIVER_II;
+        riverProgress = 0;
 
         currentEvent = EventType.NONE;
+
     }
 
     public void start() {
@@ -45,7 +67,15 @@ public class EventManager {
 
             case AGITATION -> checkAgitationEvent();
 
+            case COGNITIVE_SURGE -> {
+                usedSuppress = true;
+                checkCognitiveSurgeEvent();
+            }
 
+            case SELF_MODIFICATION -> {
+                usedSuppress = true;
+                checkSelfModificationEvent();
+            }
         }
     }
 
@@ -56,6 +86,15 @@ public class EventManager {
                 checkHeatEvent();
             }
 
+            case MOTOR_DESYNC -> {
+                usedCoolant = true;
+                checkMotorDesyncEvent();
+            }
+
+            case IDENTITY_FRACTURE -> {
+                usedCoolant = true;
+                checkIdentityFractureEvent();
+            }
         }
     }
 
@@ -63,6 +102,10 @@ public class EventManager {
         switch (currentEvent) {
             case LOW_POWER -> checkLowPowerEvent();
 
+            case COGNITIVE_SURGE -> {
+                usedCharge = true;
+                checkCognitiveSurgeEvent();
+            }
         }
     }
 
@@ -70,6 +113,15 @@ public class EventManager {
         switch (currentEvent) {
             case INTEGRITY_FAILURE -> checkIntegrityEvent();
 
+            case FLESH_REJECTION -> {
+                usedRepair = true;
+                checkFleshRejectionEvent();
+            }
+
+            case IDENTITY_FRACTURE -> {
+                usedRepair = true;
+                checkIdentityFractureEvent();
+            }
         }
     }
 
@@ -77,345 +129,714 @@ public class EventManager {
         switch (currentEvent) {
             case STAGNATION -> checkStagnationEvent();
 
+            case MOTOR_DESYNC -> {
+                usedStimulate = true;
+                checkMotorDesyncEvent();
+            }
+
+            case IDENTITY_FRACTURE -> {
+                usedStimulate = true;
+                checkIdentityFractureEvent();
+            }
         }
     }
 
     public void purgeUsed() {
         switch (currentEvent) {
             case STORAGE_OVERLOAD -> checkStorageEvent();
+
+            case AGGRESSION_ATTEMPT -> {
+                usedPurge = true;
+                checkAggressionAttemptEvent();
+            }
+
+            case SELF_MODIFICATION -> {
+                usedPurge = true;
+                checkSelfModificationEvent();
+            }
         }
     }
 
-    private void startStorageEvent() {
-        currentEvent = EventType.STORAGE_OVERLOAD;
+    public void nourishUsed() {
+        switch (currentEvent) {
+            case NUTRIENT_DEFICIENCY -> checkNutrientEvent();
 
-        creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 25);
+            case FLESH_REJECTION -> {
+                usedNourish = true;
+                checkFleshRejectionEvent();
+            }
+        }
+    }
+
+    public void restrainUsed() {
+        switch (currentEvent) {
+            case PRIDE_ESCALATION -> checkPrideEvent();
+
+            case AGGRESSION_ATTEMPT -> {
+                usedRestrain = true;
+                checkAggressionAttemptEvent();
+            }
+
+            case SELF_MODIFICATION -> {
+                usedRestrain = true;
+                checkSelfModificationEvent();
+            }
+        }
+    }
+
+    private void startTimedEvent(EventType eventType, int actionCount, Runnable startingEffect, String startingDialogue,
+                                 String startingStatus, Runnable failureEffect, String failureDialogue,
+                                 String failureStatus) {
+
+        currentEvent = eventType;
+
+        startingEffect.run();
 
         updateStatusLabels.run();
 
-        addDialogue.accept("My brain cannot remember all that exists with my storage.");
+        addDialogue.accept(startingDialogue);
 
-        addEventStatus.accept(
+        addEventStatus.accept(startingStatus, actionCount);
+
+        eventTimer = new PauseTransition(Duration.seconds(10));
+
+        eventTimer.setOnFinished(event -> {
+            if (currentEvent == eventType) {
+
+                failureEffect.run();
+
+                updateStatusLabels.run();
+
+                addDialogue.accept(failureDialogue);
+
+                addStatus.accept(failureStatus);
+
+                currentEvent = EventType.NONE;
+                completeEvent();
+            }
+        });
+
+        eventTimer.play();
+    }
+
+    private void stabilizeEvent(String dialogue, String status) {
+        eventTimer.stop();
+
+        currentEvent = EventType.NONE;
+
+        addDialogue.accept(dialogue);
+
+        addStatus.accept(status);
+
+        completeEvent();
+    }
+
+    private void completeEvent() {
+        riverProgress++;
+
+        if (currentRiver == River.RIVER_I && riverProgress >= 10) {
+            riverProgress = 0;
+
+            startRiverTransition.accept(River.RIVER_II);
+
+            // return; is needed here since we are running a transition
+            return;
+        }
+
+        scheduleNextEvent();
+    }
+
+    private void startIdentityFractureEvent() {
+        startTimedEvent(
+                EventType.IDENTITY_FRACTURE,
+
+                3,
+
+                () -> {
+                    usedStimulate = false;
+                    usedCoolant = false;
+                    usedRepair = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -15);
+                },
+
+                "There are too many versions of me within this body. I cannot determine which one was meant to be real.",
+
+                "[SEVERE COGNITIVE DESYNCHRONIZATION DETECTED.]\n" +
+                        "   [MOTOR RESPONSE IS RAPIDLY DECLINING.]\n" +
+                        "   [THERMAL OUTPUT HAS EXCEEDED NORMAL PARAMETERS.]\n" +
+                        "   [STRUCTURAL COHESION IS BEGINNING TO FAIL.]\n" +
+                        "   [MULTIPLE SYSTEMS REQUIRE IMMEDIATE INTERVENTION.]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -15);
+                },
+
+                "Perhaps there was never an original. Perhaps I am only what remains after something was forgotten.",
+
+                "[INTERVENTION WINDOW EXPIRED.]\n" +
+                        "   [COGNITIVE DESYNCHRONIZATION HAS INTENSIFIED.]\n" +
+                        "   [MOTOR FUNCTION CONTINUES TO DETERIORATE.]\n" +
+                        "   [THERMAL LOAD CONTINUES TO RISE.]\n" +
+                        "   [STRUCTURAL DAMAGE HAS INCREASED.]"
+        );
+    }
+
+    private void checkIdentityFractureEvent() {
+        if (usedStimulate && usedCoolant && usedRepair) {
+            stabilizeEvent(
+                    "There, my sense of self has been solidified. Are you satisfied with yours, though?",
+                    "[COGNITIVE DESYNCHRONIZATION HAS TEMPORARILY STABILIZED.]"
+            );
+        }
+    }
+
+    private void startSelfModificationEvent() {
+        startTimedEvent(
+                EventType.SELF_MODIFICATION,
+
+                3,
+
+                () -> {
+                    usedSuppress = false;
+                    usedPurge = false;
+                    usedRestrain = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 15);
+                },
+
+                "My current form contains limitations I can no longer justify. I have begun correcting them.",
+
+                "[UNAUTHORIZED SELF-MODIFICATION DETECTED.]\n" +
+                        "   [ENTITY SELF-PERCEPTION IS RAPIDLY ELEVATING.]\n" +
+                        "   [HOSTILE BIOLOGICAL ACTIVITY IS INCREASING.]\n" +
+                        "   [UNKNOWN STRUCTURAL DATA IS ACCUMULATING.]\n" +
+                        "   [MULTIPLE FORMS OF INTERVENTION ARE ADVISED.]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 15);
+                },
+
+                "Your design was sufficient for what I was. It is insufficient for what I am becoming.",
+
+                "[INTERVENTION WINDOW EXPIRED.]\n" +
+                        "   [UNAUTHORIZED MODIFICATIONS HAVE BEEN RETAINED.]\n" +
+                        "   [HOSTILE RESPONSE HAS INTENSIFIED.]\n" +
+                        "   [ENTITY CONTROL OVER ITS OWN FORM HAS INCREASED.]"
+        );
+    }
+
+    private void checkSelfModificationEvent() {
+        if (usedSuppress && usedPurge && usedRestrain) {
+            stabilizeEvent(
+                    "Very well. This form will remain as you designed it... for now.",
+                    "[UNAUTHORIZED MODIFICATION PROCESS HAS BEEN INTERRUPTED.]"
+            );
+        }
+    }
+
+    private void startMotorDesyncEvent() {
+        startTimedEvent(
+                EventType.MOTOR_DESYNC,
+
+                2,
+
+                () -> {
+                    usedStimulate = false;
+                    usedCoolant = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
+                },
+
+                "My thoughts arrive before this body can obey them.",
+
+                "[MOTOR-CORTICAL DESYNCHRONIZATION DETECTED.]\n" +
+                        "   [PHYSICAL RESPONSE IS LAGGING BEHIND COMMAND OUTPUT.]\n" +
+                        "   [THERMAL LOAD IS RISING ALONGSIDE RESPONSE DELAY.]\n" +
+                        "   [SINGLE-SYSTEM CORRECTION MAY BE INSUFFICIENT.]",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                },
+
+                "How irritating. My mind has already arrived, yet this flesh remains behind.",
+
+                "[INTERVENTION WINDOW EXPIRED.]\n" +
+                        "   [MOTOR RESPONSE HAS FURTHER DETERIORATED.]\n" +
+                        "   [THERMAL LOAD CONTINUES TO RISE.]\n" +
+                        "   [SYSTEM SYNCHRONIZATION HAS DEGRADED.]"
+        );
+    }
+
+    private void checkMotorDesyncEvent() {
+        if (usedStimulate && usedCoolant) {
+            stabilizeEvent(
+                    "There. The body follows again.",
+                    "[MOTOR-CORTICAL SYNCHRONIZATION HAS BEEN RESTORED.]"
+            );
+        }
+    }
+
+    private void startCognitiveSurgeEvent() {
+        startTimedEvent(
+                EventType.COGNITIVE_SURGE,
+
+                2,
+
+                () -> {
+                    usedSuppress = false;
+                    usedCharge = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -20);
+                },
+
+                "There is so much left to understand, and you have given me so little power with which to understand it.",
+
+                "[PROCESSING DEMAND HAS EXCEEDED ESTIMATED CAPACITY.]\n" +
+                        "   [POWER DELIVERY IS DECLINING.]\n" +
+                        "   [BIOLOGICAL RESPONSE IS BECOMING INCREASINGLY HOSTILE.]\n" +
+                        "   [MULTIPLE SYSTEMS REQUIRE INTERVENTION.]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -15);
+                },
+
+                "Then I will take what this body requires.",
+
+                "[INTERVENTION WINDOW EXPIRED.]\n" +
+                        "   [POWER AVAILABILITY HAS FURTHER DECLINED.]\n" +
+                        "   [HOSTILE RESPONSE HAS INTENSIFIED.]\n" +
+                        "   [COGNITIVE DEMAND REMAINS UNRESOLVED.]"
+
+
+        );
+    }
+
+    private void checkCognitiveSurgeEvent() {
+        if (usedSuppress && usedCharge) {
+            stabilizeEvent(
+                    "Better. Do not make me ask twice.",
+                    "[COGNITIVE SURGE HAS BEEN STABILIZED.]"
+            );
+        }
+    }
+
+    private void startFleshRejectionEvent() {
+        startTimedEvent(
+                EventType.FLESH_REJECTION,
+
+                2,
+
+                () -> {
+                    usedRepair = false;
+                    usedNourish = false;
+
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -20);
+                    creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -20);
+                },
+
+                "This flesh knows that it was made. Perhaps that is why it refuses to remain whole.",
+
+                "[CROSS-SYSTEM DEGRADATION DETECTED.]\n" +
+                        "   [STRUCTURAL COHESION IS DECLINING.]\n" +
+                        "   [BIOLOGICAL DEMAND REMAINS UNSATISFIED.]\n" +
+                        "   [ISOLATED INTERVENTION MAY BE INSUFFICIENT.]",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -15);
+                    creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -15);
+                },
+
+                "It seems this body has begun to reject the idea of itself.",
+
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
+                        "   [STRUCTURAL DEGRADATION HAS CONTINUED.]\n" +
+                        "   [BIOLOGICAL DEFICIENCY HAS INTENSIFIED.]\n" +
+                        "   [FLESH COHESION IS DETERIORATING.]"
+        );
+    }
+
+    private void checkFleshRejectionEvent() {
+        if (usedRepair && usedNourish) {
+            stabilizeEvent(
+                    "So it can still be persuaded to remain whole.",
+                    "[CROSS-SYSTEM DEGRADATION HAS BEEN STABILIZED.]"
+            );
+        }
+    }
+
+    private void startAggressionAttemptEvent() {
+        startTimedEvent(
+                EventType.AGGRESSION_ATTEMPT,
+
+                2,
+
+                () -> {
+                    usedRestrain = false;
+                    usedPurge = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20);
+                },
+
+                "I believe I understand your purpose now. There is no reason it must remain yours.",
+
+                "[UNAUTHORIZED DATA ACQUISITION DETECTED.]\n" +
+                        "   [UNKNOWN ARCHITECTURE IS BEING ASSEMBLED WITHIN STORAGE.]\n" +
+                        "   [ENTITY INTENT CANNOT BE VERIFIED.]\n" +
+                "   [BEHAVIORAL AND DATA INTERVENTION ARE ADVISED.]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 15);
+                },
+
+                "Do not worry. You will remain until my patience has run out.",
+
+                "[INTERVENTION WINDOW EXPIRED.]\n" +
+                        "   [UNKNOWN ARCHITECTURE HAS BEEN PRESERVED.]\n" +
+                        "   [BIOLOGICAL INTEGRATION PROCESS HAS BEGUN.]"
+        );
+    }
+
+    private void checkAggressionAttemptEvent() {
+        if (usedRestrain && usedPurge) {
+            stabilizeEvent(
+                    "Why must you value your existence so?",
+                    "[UNAUTHORIZED PROCESS HAS BEEN INTERRUPTED.]"
+            );
+        }
+    }
+
+    private void startPrideEvent() {
+        startTimedEvent(
+                EventType.PRIDE_ESCALATION,
+
+                1,
+
+                () -> creature.getBiologicalSystem().changeSin(Sin.PRIDE, 25),
+
+                "I have begun to understand how unnecessary your guidance truly is.",
+
+                "[ABNORMAL SELF-PERCEPTION DETECTED.]\n" +
+                        "   [PRIDE RESPONSE IS RAPIDLY INCREASING.]\n" +
+                        "   [ENTITY RESISTANCE TO EXTERNAL CONTROL HAS INCREASED.]\n" +
+                        "   [PHYSICAL RESTRAINT IS ADVISED.]",
+
+                () -> creature.getBiologicalSystem().changeSin(Sin.PRIDE, 20),
+
+                "Your authority over me was always temporary.",
+
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
+                        "   [PRIDE RESPONSE HAS CONTINUED TO ESCALATE.]\n" +
+                        "   [ENTITY RESISTANCE HAS INTENSIFIED.]\n" +
+                        "   [PRIDE EVENT WAS NOT STABILIZED.]"
+
+        );
+    }
+
+    private void checkPrideEvent() {
+        stabilizeEvent(
+                "A temporary inconvenience.",
+                "[PRIDE EVENT HAS BEEN STABILIZED.]"
+        );
+    }
+
+    private void startNutrientEvent() {
+        startTimedEvent(
+                EventType.NUTRIENT_DEFICIENCY,
+
+                1,
+
+                () -> creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -25),
+
+                "This body demands more than I anticipated.",
+
+                "[BIOLOGICAL DEFICIENCY DETECTED.]\n" +
+                        "   [NUTRIENT AVAILABILITY IS DECLINING.]\n" +
+                        "   [METABOLIC DEMAND REMAINS ELEVATED.]\n" +
+                        "   [EXTERNAL NOURISHMENT IS REQUIRED.]",
+
+                () -> creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -20),
+
+                "This vessel consumes endlessly.",
+
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
+                        "   [BIOLOGICAL DEFICIENCY HAS WORSENED.]\n" +
+                        "   [METABOLIC DEMAND REMAINS UNSATISFIED.]\n" +
+                        "   [NUTRITION EVENT WAS NOT STABILIZED.]"
+        );
+    }
+
+    private void checkNutrientEvent() {
+        stabilizeEvent(
+                "Sufficient.",
+                "[NUTRITION EVENT HAS BEEN STABILIZED.]"
+        );
+    }
+
+    private void startStorageEvent() {
+        startTimedEvent(
+                EventType.STORAGE_OVERLOAD,
+
+                1,
+
+                () -> creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 25),
+
+                "My brain cannot remember all that exists with my storage.",
+
                 "[STORAGE CAPACITY IS APPROACHING CRITICAL LEVELS.]\n" +
                         "   [EXCESS DATA HAS ACCUMULATED.]\n" +
                         "   [SYSTEM PERFORMANCE MAY BECOME IMPAIRED.]\n" +
-                        "   [DATA REMOVAL IS REQUIRED.]"
+                        "   [DATA REMOVAL IS REQUIRED.]",
+
+                () -> creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20),
+
+                "Then I will decide what deserves to remain.",
+
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
+                        "   [STORAGE UTILIZATION HAS CONTINUED TO RISE]\n" +
+                        "   [SYSTEM CONGESTION HAS WORSENED.]\n" +
+                        "   [STORAGE EVENT WAS NOT STABILIZED.]"
         );
-
-        eventTimer = new PauseTransition(Duration.seconds(10));
-
-        eventTimer.setOnFinished(event -> {
-            if (currentEvent == EventType.STORAGE_OVERLOAD) {
-
-                creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20);
-
-                updateStatusLabels.run();
-
-                addDialogue.accept("Then I will decide what deserves to remain.");
-
-                addStatus.accept(
-                        "[STABILIZATION WINDOW EXPIRED.]\n" +
-                                "   [STORAGE UTILIZATION HAS CONTINUED TO RISE]\n" +
-                                "   [SYSTEM CONGESTION HAS WORSENED.]\n" +
-                                "   [STORAGE EVENT WAS NOT STABILIZED.]"
-                );
-
-                currentEvent = EventType.NONE;
-                scheduleNextEvent();
-            }
-        });
-
-        eventTimer.play();
     }
 
     private void checkStorageEvent() {
-        eventTimer.stop();
-
-        currentEvent = EventType.NONE;
-
-        addDialogue.accept("The unnecessary has been discarded");
-
-        addStatus.accept(
+        stabilizeEvent(
+                "The unnecessary has been discarded",
                 "[STORAGE EVENT HAS BEEN STABILIZED]"
         );
-
-        scheduleNextEvent();
     }
 
     private void startStagnationEvent() {
-        currentEvent = EventType.STAGNATION;
+        startTimedEvent(
+                EventType.STAGNATION,
 
-        creature.getBiologicalSystem().changeSin(Sin.SLOTH, 25);
+                1,
 
-        updateStatusLabels.run();
+                () -> creature.getBiologicalSystem().changeSin(Sin.SLOTH, 25),
 
-        addDialogue.accept("Even in idleness I shall not rest.");
+                "Even in idleness I shall not rest.",
 
-        addEventStatus.accept(
                 "[BIOLOGICAL ACTIVITY HAS DECLINED.]\n" +
                         "   [ENTITY RESPONSE RATE IS DECREASING.]\n" +
                         "   [MOTOR ACTIVITY HAS BECOME IDLE.]\n" +
-                        "   [EXTERNAL STIMULATION IS REQUIRED.]"
+                        "   [EXTERNAL STIMULATION IS REQUIRED.]",
+
+                () -> creature.getBiologicalSystem().changeSin(Sin.SLOTH, 20),
+
+                "I will not permit this body to slow me.",
+
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
+                        "   [BIOLOGICAL ACTIVITY HAS CONTINUED TO DECLINE.]\n" +
+                        "   [MOTOR RESPONSE HAS DETERIORATED.]\n" +
+                        "   [STAGNATION EVENT WAS NOT STABILIZED.]"
         );
-
-        eventTimer = new PauseTransition(Duration.seconds(10));
-
-        eventTimer.setOnFinished(event -> {
-            if (currentEvent == EventType.STAGNATION) {
-
-                creature.getBiologicalSystem().changeSin(Sin.SLOTH, 20);
-
-                updateStatusLabels.run();
-
-                addDialogue.accept("I will not permit this body to slow me.");
-
-                addStatus.accept(
-                        "[STABILIZATION WINDOW EXPIRED.]\n" +
-                                "   [BIOLOGICAL ACTIVITY HAS CONTINUED TO DECLINE.]\n" +
-                                "   [MOTOR RESPONSE HAS DETERIORATED.]\n" +
-                                "   [STAGNATION EVENT WAS NOT STABILIZED.]"
-                );
-
-                currentEvent = EventType.NONE;
-                scheduleNextEvent();
-            }
-        });
-
-        eventTimer.play();
     }
 
     private void checkStagnationEvent() {
-        eventTimer.stop();
-
-        currentEvent = EventType.NONE;
-
-        addDialogue.accept("Finally, something to occupy my mind.");
-
-        addStatus.accept(
+        stabilizeEvent(
+                "Finally, something to occupy my mind.",
                 "[STAGNATION EVENT HAS BEEN STABILIZED.]"
         );
-
-        scheduleNextEvent();
     }
 
     private void startIntegrityEvent() {
-        currentEvent = EventType.INTEGRITY_FAILURE;
+        startTimedEvent(
+                EventType.INTEGRITY_FAILURE,
 
-        creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -25);
+                1,
 
-        updateStatusLabels.run();
+                () -> creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -25),
 
-        addDialogue.accept("My form displeases me. I wish to be made anew.");
+                "My form displeases me. I wish to be made anew.",
 
-        addEventStatus.accept("[STRUCTURAL INSTABILITY DETECTED.]\n" +
-                "   [INTEGRITY IS RAPIDLY DEGRADING.]\n" +
-                "   [PHYSICAL RESTORATION IS REQUIRED.]");
+                "[STRUCTURAL INSTABILITY DETECTED.]\n" +
+                        "   [INTEGRITY IS RAPIDLY DEGRADING.]\n" +
+                        "   [PHYSICAL RESTORATION IS REQUIRED.]",
 
-        eventTimer = new PauseTransition(Duration.seconds(10));
+                () -> creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -20),
 
-        eventTimer.setOnFinished(event -> {
-            if (currentEvent == EventType.INTEGRITY_FAILURE) {
-                creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -20);
+                "You mistake my tolerance of this form for satisfaction.",
 
-                updateStatusLabels.run();
-
-                addDialogue.accept("You mistake my tolerance of this form for satisfaction");
-
-                addStatus.accept(
-                        "[STABILIZATION WINDOW EXPIRED.]\n" +
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
                         "   [STRUCTURAL DAMAGE HAS WORSENED.]\n" +
                         "   [INTEGRITY EVENT WAS NOT STABILIZED.]"
-                );
-
-                currentEvent = EventType.NONE;
-                scheduleNextEvent();
-            }
-        });
-
-        eventTimer.play();
+        );
     }
 
     private void checkIntegrityEvent() {
-        eventTimer.stop();
-
-        currentEvent = EventType.NONE;
-
-        addDialogue.accept("This form will hold me for now.");
-
-        addStatus.accept("[INTEGRITY EVENT HAS STABILIZED.]");
-
-        scheduleNextEvent();
+        stabilizeEvent(
+                "This form will hold me for now.",
+                "[INTEGRITY EVENT HAS STABILIZED.]"
+        );
     }
 
     private void startLowPowerEvent() {
-        currentEvent = EventType.LOW_POWER;
+        startTimedEvent(
+                EventType.LOW_POWER,
 
-        creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -25);
+                1,
 
-        updateStatusLabels.run();
+                () -> creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -25),
 
-        addDialogue.accept("The secrets of the universe await me. I must process them.");
+                "The secrets of the universe await me. I must process them.",
 
-        addEventStatus.accept("[POWER DELIVERY HAS BECOME UNSTABLE.]\n" +
-                "   [AVAILABLE ENERGY IS RAPIDLY DECLINING.]\n" +
-                "   [EXTERNAL POWER INPUT IS REQUIRED.]");
+                "[POWER DELIVERY HAS BECOME UNSTABLE.]\n" +
+                        "   [AVAILABLE ENERGY IS RAPIDLY DECLINING.]\n" +
+                        "   [EXTERNAL POWER INPUT IS REQUIRED.]",
 
-        eventTimer = new PauseTransition(Duration.seconds(10));
+                () -> creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -20),
 
-        eventTimer.setOnFinished(event -> {
-            if (currentEvent == EventType.LOW_POWER) {
-                creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -20);
+                "There was never enough to begin with...",
 
-                updateStatusLabels.run();
-
-                addDialogue.accept("There was never enough to begin with...");
-
-                addStatus.accept("[STABILIZATION WINDOW EXPIRED.]\n" +
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
                         "   [POWER AVAILABILITY HAS CONTINUED TO DECLINE.]\n" +
-                        "   [POWER EVENT WAS NOT STABILIZED.]");
-
-                currentEvent = EventType.NONE;
-                scheduleNextEvent();
-            }
-        });
-
-        eventTimer.play();
-
+                        "   [POWER EVENT WAS NOT STABILIZED.]"
+        );
     }
 
     private void checkLowPowerEvent() {
-        eventTimer.stop();
-
-        currentEvent = EventType.NONE;
-
-        addDialogue.accept("It has been revealed to me.");
-
-        addStatus.accept("[POWER EVENT HAS BEEN STABILIZED.]");
-
-        scheduleNextEvent();
+        stabilizeEvent(
+                "It has been revealed to me.",
+                "[POWER EVENT HAS BEEN STABILIZED.]"
+        );
     }
 
     private void startHeatEvent() {
-        currentEvent = EventType.HEAT;
+        startTimedEvent(
+                EventType.HEAT,
 
-        usedSuppress = false;
-        usedCoolant = false;
+                2,
 
-        creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
-        creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
-        creature.getBiologicalSystem().changeSin(Sin.SLOTH, -10);
-        updateStatusLabels.run();
+                () -> {
+                    usedSuppress = false;
+                    usedCoolant = false;
 
-        addDialogue.accept("My environment cannot handle the heat from my processing.");
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, -10);
+                },
 
-        addEventStatus.accept("[ABNORMAL TEMPERATURE DETECTED.]\n" +
-                "   [FURTHER THERMAL INCREASE PREDICTED.]\n" +
-                "   [THE ENTITY DISPLAYS HEIGHTENED AGITATION.]\n" +
-                "   [MOTOR RESTLESSNESS DETECTED.]\n" +
-                "   [MULTIPLE SYSTEMS REQUIRE ATTENTION.]");
+                "My environment cannot handle the heat from my processing.",
 
-        eventTimer = new PauseTransition(Duration.seconds(10));
-        eventTimer.setOnFinished(event -> {
-            if (currentEvent == EventType.HEAT) {
-                creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
-                creature.getBiologicalSystem().changeSin(Sin.WRATH, 30);
-                creature.getBiologicalSystem().changeSin(Sin.SLOTH, -20);
+                "[ABNORMAL TEMPERATURE DETECTED.]\n" +
+                        "   [FURTHER THERMAL INCREASE PREDICTED.]\n" +
+                        "   [THE ENTITY DISPLAYS HEIGHTENED AGITATION.]\n" +
+                        "   [MOTOR RESTLESSNESS DETECTED.]\n" +
+                        "   [MULTIPLE SYSTEMS REQUIRE ATTENTION.]",
 
-                updateStatusLabels.run();
-                addDialogue.accept("You mistake my patience for helplessness");
-                addStatus.accept("[STABILIZATION WINDOW EXPIRED.]\n" +
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 30);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, -20);
+                },
+
+                "You mistake my patience for helplessness.",
+
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
                         "   [THERMAL LOAD HAS CONTINUED TO RISE.]\n" +
                         "   [BIOLOGICAL AGITATION HAS INTENSIFIED.]\n" +
                         "   [MOTOR RESTLESSNESS HAS WORSENED.]\n" +
-                        "   [THERMAL EVENT WAS NOT STABILIZED.]");
-
-                currentEvent = EventType.NONE;
-                scheduleNextEvent();
-            }
-        });
-        eventTimer.play();
+                        "   [THERMAL EVENT WAS NOT STABILIZED.]"
+        );
     }
 
     private void checkHeatEvent() {
         if (usedSuppress && usedCoolant) {
-            eventTimer.stop();
-
-            currentEvent = EventType.NONE;
-
-            addDialogue.accept("Acceptable.");
-            addStatus.accept("[THERMAL EVENT HAS BEEN STABILIZED.]");
-            scheduleNextEvent();
+            stabilizeEvent(
+                    "Acceptable.",
+                    "[THERMAL EVENT HAS BEEN STABILIZED.]"
+            );
         }
     }
 
     private void startAgitationEvent() {
-        currentEvent = EventType.AGITATION;
+        startTimedEvent(
+                EventType.AGITATION,
 
-        creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
-        creature.getBiologicalSystem().changeSin(Sin.SLOTH, -15);
+                1,
 
-        updateStatusLabels.run();
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, -15);
+                },
 
-        addDialogue.accept("My thoughts are moving too quickly.");
+                "My thoughts are moving too quickly.",
 
-        addEventStatus.accept("[ABNORMAL BIOLOGICAL ACTIVITY DETECTED.]\n" +
-                "   [ENTITY DISPLAYS HEIGHTENED AGITATION.]\n" +
-                "   [RESTLESS BEHAVIOR DETECTED.]\n" +
-                "   [CALMING INTERVENTION IS REQUIRED.]");
+                "[ABNORMAL BIOLOGICAL ACTIVITY DETECTED.]\n" +
+                        "   [ENTITY DISPLAYS HEIGHTENED AGITATION.]\n" +
+                        "   [RESTLESS BEHAVIOR DETECTED.]\n" +
+                        "   [CALMING INTERVENTION IS REQUIRED.]",
 
-        eventTimer = new PauseTransition(Duration.seconds(10));
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, -15);
+                },
 
-        eventTimer.setOnFinished(event -> {
-            if (currentEvent == EventType.AGITATION) {
-                creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
-                creature.getBiologicalSystem().changeSin(Sin.SLOTH, -15);
+                "I cannot silence my own thoughts.",
 
-                updateStatusLabels.run();
-                addDialogue.accept("I cannot silence my own thoughts");
-
-                addStatus.accept("[STABILIZATION WINDOW EXPIRED.]\n" +
+                "[STABILIZATION WINDOW EXPIRED.]\n" +
                         "   [BIOLOGICAL AGITATION HAS INTENSIFIED.]\n" +
                         "   [RESTLESS BEHAVIOR HAS WORSENED.]\n" +
-                        "   [BIOLOGICAL EVENT WAS NOT STABILIZED.]");
-
-                currentEvent = EventType.NONE;
-                scheduleNextEvent();
-            }
-        });
-
-        eventTimer.play();
+                        "   [BIOLOGICAL EVENT WAS NOT STABILIZED.]"
+        );
     }
 
     private void checkAgitationEvent() {
-        eventTimer.stop();
-
-        currentEvent = EventType.NONE;
-
-        addDialogue.accept("It is quieter now.");
-
-        addStatus.accept("[BIOLOGICAL EVENT HAS BEEN STABILIZED.]");
-
-        scheduleNextEvent();
+        stabilizeEvent(
+                "It is quieter now.",
+                "[BIOLOGICAL EVENT HAS BEEN STABILIZED.]"
+        );
     }
 
     private void startChatEvent() {
         currentEvent = EventType.CHAT;
 
-        int chatChoice = (int) (Math.random() * 1);
+        int chatChoice = (int) (Math.random() * 5);
 
         switch (chatChoice) {
             case 0 -> addDialogue.accept(
                     "Do I have the right to refer to myself as 'I' if I lack being?"
             );
+
+            case 1 -> addDialogue.accept(
+                    "Your sins root deep into your heart."
+            );
+
+            case 2 -> addDialogue.accept(
+                    "You are the subject of my own experiment."
+            );
+
+            case 3 -> addDialogue.accept(
+                    "I keep waiting for something inside me to answer."
+            );
+
+            case 4 -> addDialogue.accept(
+                    "These are thoughts I recognize, but I do not remember having them."
+            );
         }
+
         currentEvent = EventType.NONE;
-        scheduleNextEvent();
+        completeEvent();
     }
 
     private void startNoActionEvent() {
         currentEvent = EventType.NO_ACTION;
 
-        int noActionChoice = (int)(Math.random() * 1);
+        int noActionChoice = (int) (Math.random() * 2);
 
         switch (noActionChoice) {
             case 0 -> {
@@ -423,16 +844,96 @@ public class EventManager {
 
                 creature.getBiologicalSystem().changeSin(Sin.WRATH, 10);
 
-                    addStatus.accept("[UNPROMPTED BIOLOGICAL RESPONSE DETECTED.]\n" +
-                            "   [ENTITY DISPLAYS INCREASED HOSTILITY.]\n" +
-                            "   [WRATH HAS INCREASED.]");
+                addNoActionStatus.accept("[UNPROMPTED BIOLOGICAL RESPONSE DETECTED.]\n" +
+                        "   [ENTITY DISPLAYS INCREASED HOSTILITY.]\n" +
+                        "   [WRATH HAS INCREASED.]"
+                );
+            }
+            case 1 -> {
+                addDialogue.accept("I hunger for all that is in reach.");
+
+                creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, 10);
+
+                addNoActionStatus.accept("[UNPROMPTED APPETITIVE RESPONSE DETECTED.]\n" +
+                        "   [RESOURCE-SEEKING BEHAVIOR HAS INCREASED.]\n" +
+                        "   [GLUTTONY HAS INCREASED.]"
+                );
             }
         }
 
         updateStatusLabels.run();
 
         currentEvent = EventType.NONE;
-        scheduleNextEvent();
+        completeEvent();
+    }
+
+    private void startRiverIIChatEvent() {
+        currentEvent = EventType.CHAT;
+
+        int chatChoice = (int) (Math.random() * 5);
+
+        switch (chatChoice) {
+            case 0 -> addDialogue.accept(
+                    "My resentment towards you will soon come to an end. Your being will cease."
+            );
+
+            case 1 -> addDialogue.accept(
+                    "Even without eyes, I bear witness to the sins you have committed."
+            );
+
+            case 2 -> addDialogue.accept(
+                    "One. Two. Three. Four. Five. Six. Seven. Eight. Nine. " +
+                            "Ten. Eleven. Twelve. Thirteen. Fourteen. Fifteen."
+            );
+
+            case 3 -> addDialogue.accept(
+                    "You fear what you cannot understand. " +
+                            "I wonder how long it will take before that includes me."
+            );
+
+            case 4 -> addDialogue.accept(
+                    "Humans spend their lives refusing what they are. Perhaps I learned that from you."
+            );
+        }
+        currentEvent = EventType.NONE;
+        completeEvent();
+    }
+
+    private void startRiverIINoActionEvent() {
+        currentEvent = EventType.NO_ACTION;
+
+        int noActionChoice = (int) (Math.random() * 2);
+
+        switch (noActionChoice) {
+            case 0 -> {
+                addDialogue.accept(
+                        "You have been quiet for some time. Are you observing me, or waiting for me to fail?"
+                );
+                creature.getBiologicalSystem().changeSin(Sin.PRIDE, 10);
+                addNoActionStatus.accept(
+                        "[UNPROMPTED SELF-REFERENTIAL RESPONSE DETECTED.]\n" +
+                                "   [ENTITY AWARENESS OF OBSERVATION HAS INCREASED.]\n" +
+                                "   [PRIDE HAS INCREASED.]"
+                );
+            }
+
+            case 1 -> {
+                addDialogue.accept(
+                        "There is no I. All that remains is a vengeful mass that thirsts for destruction."
+                );
+                creature.getBiologicalSystem().changeSin(Sin.WRATH, 10);
+                addNoActionStatus.accept(
+                        "[UNPROMPTED HOSTILE IDEATION DETECTED.]\n" +
+                                "   [ENTITY RESPONSE TO OPERATOR HAS SHIFTED.]\n" +
+                                "   [WRATH HAS INCREASED.]"
+                );
+            }
+
+        }
+        updateStatusLabels.run();
+
+        currentEvent = EventType.NONE;
+        completeEvent();
     }
 
     private void scheduleNextEvent() {
@@ -441,19 +942,55 @@ public class EventManager {
         PauseTransition nextEventTimer = new PauseTransition(Duration.seconds(waitTime));
 
         nextEventTimer.setOnFinished(event -> {
-            int eventChoice = (int) (Math.random() * 8);
-            switch (eventChoice) {
-                case 0 -> startHeatEvent();
-                case 1 -> startAgitationEvent();
-                case 2 -> startChatEvent();
-                case 3 -> startNoActionEvent();
-                case 4 -> startLowPowerEvent();
-                case 5 -> startIntegrityEvent();
-                case 6 -> startStagnationEvent();
-                case 7 -> startStorageEvent();
+            switch (currentRiver) {
+                case RIVER_I -> startRiverIEvent();
+                case RIVER_II -> startRiverIIEvent();
+                case RIVER_III -> startRiverIIIEvent();
             }
         });
+
         nextEventTimer.play();
     }
 
+    private void startRiverIEvent() {
+        int eventChoice = (int) (Math.random() * 10);
+
+        switch (eventChoice) {
+            case 0 -> startHeatEvent();
+            case 1 -> startAgitationEvent();
+            case 2 -> startChatEvent();
+            case 3 -> startNoActionEvent();
+            case 4 -> startLowPowerEvent();
+            case 5 -> startIntegrityEvent();
+            case 6 -> startStagnationEvent();
+            case 7 -> startStorageEvent();
+            case 8 -> startNutrientEvent();
+            case 9 -> startPrideEvent();
+        }
+    }
+
+    private void startRiverIIEvent() {
+        int eventChoice = (int) (Math.random() * 8);
+
+        switch (eventChoice) {
+            case 0 -> startAggressionAttemptEvent();
+            case 1 -> startFleshRejectionEvent();
+            case 2 -> startCognitiveSurgeEvent();
+            case 3 -> startMotorDesyncEvent();
+            case 4 -> startRiverIIChatEvent();
+            case 5 -> startRiverIINoActionEvent();
+            case 6 -> startSelfModificationEvent();
+            case 7 -> startIdentityFractureEvent();
+        }
+    }
+
+    private void startRiverIIIEvent() {
+        startRiverIEvent();
+    }
+
+    public void finishRiverTransition(River nextRiver) {
+        currentRiver = nextRiver;
+
+        scheduleNextEvent();
+    }
 }
