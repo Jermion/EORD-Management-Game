@@ -1,0 +1,31 @@
+.dialogue-scroll {
+    -fx-background-color: black;
+    -fx-background: black;
+}
+
+.dialogue-scroll > .viewport {
+    -fx-background-color: black;
+}
+
+.dialogue-scroll .scroll-bar:vertical {
+    -fx-background-color: black;
+}
+
+.dialogue-scroll .scroll-bar:vertical .track {
+    -fx-background-color: black;
+}
+
+.dialogue-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #444444;
+    -fx-background-radius: 4px;
+}
+
+.dialogue-scroll .scroll-bar:vertical .increment-button,
+.dialogue-scroll .scroll-bar:vertical .decrement-button {
+    -fx-background-color: black;
+}
+
+.dialogue-scroll .scroll-bar:vertical .increment-arrow,
+.dialogue-scroll .scroll-bar:vertical .decrement-arrow {
+    -fx-background-color: #777777;
+}

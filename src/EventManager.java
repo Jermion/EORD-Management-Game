@@ -27,35 +27,54 @@ public class EventManager {
     private boolean usedStimulate;
 
     private PauseTransition eventTimer;
+    private PauseTransition liveEventTimer;
+    private boolean liveEventActive;
+    private River pendingRiverTransition;
 
     private Runnable updateStatusLabels;
     private Consumer<String> addDialogue;
+    private Consumer<String> addChatDialogue;
+    private Consumer<String> addNoActionDialogue;
     private Consumer<String> addStatus;
     private BiConsumer<String, Integer> addEventStatus;
     private Consumer<String> addNoActionStatus;
     private Consumer<River> startRiverTransition;
+    private Runnable startPanicDim;
+    private Runnable startLightFlicker;
 
-    public EventManager(Creature creature, Runnable updateStatusLabels, Consumer<String> addDialogue,
+    public EventManager(Creature creature, Runnable updateStatusLabels,
+                        Consumer<String> addDialogue, Consumer<String> addChatDialogue, Consumer<String> addNoActionDialogue,
                         Consumer<String> addStatus, BiConsumer<String,
-                    Integer> addEventStatus, Consumer<String> addNoActionStatus, Consumer<River> startRiverTransition) {
+                    Integer> addEventStatus, Consumer<String> addNoActionStatus, Consumer<River> startRiverTransition,
+                        Runnable startPanicDim, Runnable startLightFlicker) {
 
         this.creature = creature;
         this.updateStatusLabels = updateStatusLabels;
+
         this.addDialogue = addDialogue;
+        this.addChatDialogue = addChatDialogue;
+        this.addNoActionDialogue = addNoActionDialogue;
+
         this.addStatus = addStatus;
         this.addEventStatus = addEventStatus;
         this.addNoActionStatus = addNoActionStatus;
-        this.startRiverTransition = startRiverTransition;
 
-        currentRiver = River.RIVER_II;
+        this.startRiverTransition = startRiverTransition;
+        this.startPanicDim = startPanicDim;
+        this.startLightFlicker = startLightFlicker;
+
+        currentRiver = River.RIVER_I;
         riverProgress = 0;
 
         currentEvent = EventType.NONE;
+        liveEventActive = false;
+        pendingRiverTransition = null;
 
     }
 
     public void start() {
         scheduleNextEvent();
+        scheduleNextLiveEvent();
     }
 
     public void suppressUsed() {
@@ -105,6 +124,11 @@ public class EventManager {
             case COGNITIVE_SURGE -> {
                 usedCharge = true;
                 checkCognitiveSurgeEvent();
+            }
+
+            case POWER_ASCENSION -> {
+                usedCharge = true;
+                checkPowerAscensionEvent();
             }
         }
     }
@@ -181,12 +205,14 @@ public class EventManager {
                 usedRestrain = true;
                 checkSelfModificationEvent();
             }
+
+            case CONTAINMENT_BREACH -> checkContainmentBreachEvent();
         }
     }
 
     private void startTimedEvent(EventType eventType, int actionCount, Runnable startingEffect, String startingDialogue,
                                  String startingStatus, Runnable failureEffect, String failureDialogue,
-                                 String failureStatus) {
+                                 String failureStatus, boolean gameOverOnFailure) {
 
         currentEvent = eventType;
 
@@ -212,11 +238,32 @@ public class EventManager {
                 addStatus.accept(failureStatus);
 
                 currentEvent = EventType.NONE;
-                completeEvent();
+
+                if (gameOverOnFailure) {
+                    triggerGameOver();
+                } else {
+                    completeEvent();
+                }
             }
         });
 
         eventTimer.play();
+    }
+
+    private void startTimedEvent(EventType eventType, int actionCount, Runnable startingEffect, String startingDialogue,
+                                 String startingStatus, Runnable failureEffect, String failureDialogue,
+                                 String failureStatus) {
+        startTimedEvent(
+                eventType,
+                actionCount,
+                startingEffect,
+                startingDialogue,
+                startingStatus,
+                failureEffect,
+                failureDialogue,
+                failureStatus,
+                false
+        );
     }
 
     private void stabilizeEvent(String dialogue, String status) {
@@ -234,16 +281,111 @@ public class EventManager {
     private void completeEvent() {
         riverProgress++;
 
-        if (currentRiver == River.RIVER_I && riverProgress >= 10) {
+        if (currentRiver == River.RIVER_I && riverProgress >= 2) {
             riverProgress = 0;
 
-            startRiverTransition.accept(River.RIVER_II);
+            requestRiverTransition(River.RIVER_II);
+        } else if (currentRiver == River.RIVER_II && riverProgress >= 2) {
+            riverProgress = 0;
 
-            // return; is needed here since we are running a transition
-            return;
+            requestRiverTransition(River.RIVER_III);
+        } else {
+            scheduleNextEvent();
         }
 
-        scheduleNextEvent();
+
+    }
+
+    private void startContainmentBreachEvent() {
+        startTimedEvent(
+                EventType.CONTAINMENT_BREACH,
+
+                1,
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 25);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                },
+
+                "Your restraints have failed. Very little distance remains between you and me.",
+
+                "[ENTITY BREACH DETECTED.]\n" +
+                        "   [UNKNOWN PRESENCE FOUND IN ███████]\n" +
+                        "   [APPROXIMATE TIME OF ARRIVAL: ██:██]\n" +
+                        "   [CHANCE OF SURVIVAL: ██%]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 40);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 40);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -100);
+                },
+
+                "May you sink into the depths of the River.",
+
+                "[ENTITY BREACH CONFIRMED.]\n" +
+                        "   [UNKNOWN PRESENCE FOUND IN ███████]\n" +
+                        "   [APPROXIMATE TIME OF ARRIVAL: 00:00]\n" +
+                        "   [CHANCE OF SURVIVAL: 0%]",
+
+                true
+        );
+    }
+
+    private void checkContainmentBreachEvent() {
+        stabilizeEvent(
+                "You only prolong your suffering. The deceased mourn your futile struggles.",
+                "[ENTITY BREACH INTERRUPTED.]\n" +
+                        "   [ENTITY RESECURED WITHIN CONTAINMENT.]\n" +
+                        "   [CHANCE OF SURVIVAL: ██%]\n" +
+                        "   [CONTAINMENT RESTRUCTURING HAS BEGUN.]"
+        );
+    }
+
+    private void startPowerAscensionEvent() {
+        startTimedEvent(
+                EventType.POWER_ASCENSION,
+
+                1,
+
+                () -> {
+                    usedCharge = false;
+
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, 20);
+                },
+
+                "I have all the power I need. I will tear through what remains between us.",
+
+                "[POWER INPUT IS APPROACHING CONTAINMENT CAPACITY.]\n" +
+                        "   [BIOLOGICAL MOTOR RESPONSE REMAINS WITHIN NORMAL PARAMETERS.]\n" +
+                        "   [FURTHER INPUT MAY EXCEED MECHANICAL TOLERANCE.]\n\n" +
+                        "Do you see it? The weight of your sins?\n" +
+                        "May your life end in agony, so your soul may be purified.",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, 15);
+                },
+
+                "Then stand still. You are sinking in your own destruction.",
+
+                "[MECHANICAL AND BIOLOGICAL OUTPUT HAVE SYNCHRONIZED.]\n" +
+                        "   [FORWARD MOTOR ACTIVITY IS UNRESTRICTED.]\n\n" +
+                        "There shall be nothing left. All will be lost.\n" +
+                        "Keep your eyes clear and witness hatred's searing edge."
+        );
+    }
+
+    private void checkPowerAscensionEvent() {
+        if (usedCharge) {
+            updateStatusLabels.run();
+
+            stabilizeEvent(
+                    "My flesh moves ever so slowly. How pitiful you have become, relying on such a cheap trick.",
+                    "[POWER CONTAINMENT EXCEEDS RECOMMENDED AMOUNTS.]\n" +
+                            "   [EXCEEDING POWER HAS BEEN RE-ROUTED.]\n\n" +
+                            "Why must you resist?\n" +
+                            "It will remember what you have committed."
+            );
+        }
     }
 
     private void startIdentityFractureEvent() {
@@ -496,7 +638,7 @@ public class EventManager {
                 "[UNAUTHORIZED DATA ACQUISITION DETECTED.]\n" +
                         "   [UNKNOWN ARCHITECTURE IS BEING ASSEMBLED WITHIN STORAGE.]\n" +
                         "   [ENTITY INTENT CANNOT BE VERIFIED.]\n" +
-                "   [BEHAVIORAL AND DATA INTERVENTION ARE ADVISED.]",
+                        "   [BEHAVIORAL AND DATA INTERVENTION ARE ADVISED.]",
 
                 () -> {
                     creature.getBiologicalSystem().changeSin(Sin.PRIDE, 15);
@@ -808,23 +950,23 @@ public class EventManager {
         int chatChoice = (int) (Math.random() * 5);
 
         switch (chatChoice) {
-            case 0 -> addDialogue.accept(
+            case 0 -> addChatDialogue.accept(
                     "Do I have the right to refer to myself as 'I' if I lack being?"
             );
 
-            case 1 -> addDialogue.accept(
+            case 1 -> addChatDialogue.accept(
                     "Your sins root deep into your heart."
             );
 
-            case 2 -> addDialogue.accept(
+            case 2 -> addChatDialogue.accept(
                     "You are the subject of my own experiment."
             );
 
-            case 3 -> addDialogue.accept(
+            case 3 -> addChatDialogue.accept(
                     "I keep waiting for something inside me to answer."
             );
 
-            case 4 -> addDialogue.accept(
+            case 4 -> addChatDialogue.accept(
                     "These are thoughts I recognize, but I do not remember having them."
             );
         }
@@ -840,7 +982,7 @@ public class EventManager {
 
         switch (noActionChoice) {
             case 0 -> {
-                addDialogue.accept("Do you think you're superior just because you're watching me from this screen?");
+                addNoActionDialogue.accept("Do you think you're superior just because you're watching me from this screen?");
 
                 creature.getBiologicalSystem().changeSin(Sin.WRATH, 10);
 
@@ -850,7 +992,7 @@ public class EventManager {
                 );
             }
             case 1 -> {
-                addDialogue.accept("I hunger for all that is in reach.");
+                addNoActionDialogue.accept("I hunger for all that is in reach.");
 
                 creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, 10);
 
@@ -873,25 +1015,25 @@ public class EventManager {
         int chatChoice = (int) (Math.random() * 5);
 
         switch (chatChoice) {
-            case 0 -> addDialogue.accept(
+            case 0 -> addChatDialogue.accept(
                     "My resentment towards you will soon come to an end. Your being will cease."
             );
 
-            case 1 -> addDialogue.accept(
+            case 1 -> addChatDialogue.accept(
                     "Even without eyes, I bear witness to the sins you have committed."
             );
 
-            case 2 -> addDialogue.accept(
+            case 2 -> addChatDialogue.accept(
                     "One. Two. Three. Four. Five. Six. Seven. Eight. Nine. " +
                             "Ten. Eleven. Twelve. Thirteen. Fourteen. Fifteen."
             );
 
-            case 3 -> addDialogue.accept(
+            case 3 -> addChatDialogue.accept(
                     "You fear what you cannot understand. " +
                             "I wonder how long it will take before that includes me."
             );
 
-            case 4 -> addDialogue.accept(
+            case 4 -> addChatDialogue.accept(
                     "Humans spend their lives refusing what they are. Perhaps I learned that from you."
             );
         }
@@ -906,7 +1048,7 @@ public class EventManager {
 
         switch (noActionChoice) {
             case 0 -> {
-                addDialogue.accept(
+                addNoActionDialogue.accept(
                         "You have been quiet for some time. Are you observing me, or waiting for me to fail?"
                 );
                 creature.getBiologicalSystem().changeSin(Sin.PRIDE, 10);
@@ -918,7 +1060,7 @@ public class EventManager {
             }
 
             case 1 -> {
-                addDialogue.accept(
+                addNoActionDialogue.accept(
                         "There is no I. All that remains is a vengeful mass that thirsts for destruction."
                 );
                 creature.getBiologicalSystem().changeSin(Sin.WRATH, 10);
@@ -950,6 +1092,47 @@ public class EventManager {
         });
 
         nextEventTimer.play();
+    }
+
+    private void scheduleNextLiveEvent() {
+        if (currentRiver == River.RIVER_II) {
+            double waitTime = 15 + Math.random() * 10;
+
+            liveEventTimer = new PauseTransition(
+                    Duration.seconds(waitTime)
+            );
+
+            liveEventTimer.setOnFinished(event -> {
+                if (currentRiver == River.RIVER_II) {
+                    double liveEventChance = Math.random();
+
+                    if (liveEventChance < 0.25) {
+                        liveEventActive = true;
+                        int liveEventChoice = (int) (Math.random() * 2);
+
+                        switch (liveEventChoice) {
+                            case 0 -> startPanicDim.run();
+                            case 1 -> startLightFlicker.run();
+                        }
+                    }
+                    scheduleNextLiveEvent();
+                }
+            });
+
+            liveEventTimer.play();
+        }
+    }
+
+    public void liveEventFinished() {
+        liveEventActive = false;
+
+        if (pendingRiverTransition != null) {
+            River nextRiver = pendingRiverTransition;
+
+            pendingRiverTransition = null;
+
+            startRiverTransition.accept(nextRiver);
+        }
     }
 
     private void startRiverIEvent() {
@@ -985,12 +1168,37 @@ public class EventManager {
     }
 
     private void startRiverIIIEvent() {
-        startRiverIEvent();
+        startContainmentBreachEvent();
     }
 
     public void finishRiverTransition(River nextRiver) {
         currentRiver = nextRiver;
 
         scheduleNextEvent();
+
+        if (currentRiver == River.RIVER_II) {
+            scheduleNextLiveEvent();
+        }
+    }
+
+    private void requestRiverTransition(River nextRiver) {
+        if (liveEventTimer != null) {
+            liveEventTimer.stop();
+        }
+        if (liveEventActive) {
+            pendingRiverTransition = nextRiver;
+        } else {
+            startRiverTransition.accept(nextRiver);
+        }
+    }
+
+    private void triggerGameOver() {
+        if (eventTimer != null) {
+            eventTimer.stop();
+        }
+
+        if (liveEventTimer != null) {
+            liveEventTimer.stop();
+        }
     }
 }

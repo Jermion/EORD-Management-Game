@@ -207,12 +207,17 @@
 
                         <ScrollPane fx:id="dialogueScrollPane"
                                     fitToWidth="true"
+                                    fitToHeight="true"
+                                    styleClass="dialogue-scroll"
+                                    stylesheets="@style.css"
+                                    style="-fx-background: black; -fx-background-color: black;"
                                     VBox.vgrow="ALWAYS">
 
                             <content>
 
                                 <VBox fx:id="dialogueBox"
-                                      spacing="6.0" />
+                                      spacing="6.0"
+                                      style="-fx-background-color: black;" />
 
                             </content>
 

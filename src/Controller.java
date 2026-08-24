@@ -16,6 +16,14 @@ import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.ParallelTransition;
+import javafx.animation.Timeline;
+import javafx.scene.effect.GaussianBlur;
+import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,6 +36,10 @@ public class Controller {
     private Creature creature;
     private EventManager eventManager;
     private long startTime;
+
+    private AudioClip panicBreathing;
+    private AudioClip lightFlickerSoundEffect;
+    private MediaPlayer riverIIIBackgroundMusic;
 
     @FXML
     private Label prideLabel;
@@ -91,16 +103,42 @@ public class Controller {
                 creature,
                 // the 'this::' allows EventManager to use these methods
                 this::updateStatusLabels,
+
                 this::addDialogue,
+                this::addChatDialogue,
+                this::addNoActionDialogue,
+
                 this::addStatus,
                 this::addEventStatus,
                 this::addNoActionStatus,
-                this::startRiverTransition
+
+                this::startRiverTransition,
+                this::startPanicDim,
+                this::startLightFlicker
                 );
 
         updateStatusLabels();
 
         loadFonts();
+
+        panicBreathing = new AudioClip(
+                Paths.get("audio", "panicbreathing.wav").toUri().toString()
+        );
+        panicBreathing.setVolume(0.45);
+        panicBreathing.setCycleCount(AudioClip.INDEFINITE);
+
+        lightFlickerSoundEffect = new AudioClip(
+                Paths.get("audio", "lightflicker.wav").toUri().toString()
+        );
+        lightFlickerSoundEffect.setVolume(0.75);
+        lightFlickerSoundEffect.setCycleCount(AudioClip.INDEFINITE);
+
+        Media riverIIIMusic = new Media(
+                Paths.get("audio", "river3soundtrack.mp3").toUri().toString()
+        );
+        riverIIIBackgroundMusic = new MediaPlayer(riverIIIMusic);
+        riverIIIBackgroundMusic.setVolume(0.35);
+        riverIIIBackgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
 
         dialogueBox.heightProperty().addListener((observableValue, oldValue, newValue) -> {
             dialogueScrollPane.setVvalue(1.0);
@@ -192,6 +230,23 @@ public class Controller {
     private void addDialogue(String message) {
         Label newMessage = new Label("???: " + message);
         newMessage.setWrapText(true);
+        newMessage.setTextFill(Color.WHITE);
+
+        dialogueBox.getChildren().add(newMessage);
+    }
+
+    private void addChatDialogue(String message) {
+        Label newMessage = new Label("???: " + message);
+        newMessage.setWrapText(true);
+        newMessage.setTextFill(Color.web("#9AA7B3"));
+
+        dialogueBox.getChildren().add(newMessage);
+    }
+
+    private void addNoActionDialogue(String message) {
+        Label newMessage = new Label("???: " + message);
+        newMessage.setWrapText(true);
+        newMessage.setTextFill(Color.web("#C9A55C"));
 
         dialogueBox.getChildren().add(newMessage);
     }
@@ -353,25 +408,15 @@ public class Controller {
         fadeContentOut.setFromValue(1.0);
         fadeContentOut.setToValue(0.0);
 
-        FadeTransition fadeFromBlack = new FadeTransition(
-                Duration.seconds(1.5),
-                transitionPane
-        );
-
-        fadeFromBlack.setFromValue(1.0);
-        fadeFromBlack.setToValue(0.0);
 
         SequentialTransition introTransition = new SequentialTransition(
                 fadeContentIn,
                 holdTransition,
-                fadeContentOut,
-                fadeFromBlack
+                fadeContentOut
         );
 
         introTransition.setOnFinished(event -> {
-            transitionPane.setVisible(false);
-
-            eventManager.start();
+            startRiverTransition(River.RIVER_I);
         });
 
         introTransition.play();
@@ -380,14 +425,19 @@ public class Controller {
     }
 
     private void startRiverTransition(River nextRiver) {
+        transitionPane.setMouseTransparent(false);
+
         riverTransitionImage.setImage(null);
         transitionFooter.setText("");
         transitionQuote.setTextFill(Color.WHITE);
         switch (nextRiver) {
             case RIVER_I -> {
                 transitionTitle.setText("RIVER I");
-                transitionTitle.setTextFill(Color.WHITE);
-                transitionQuote.setText("");
+                transitionTitle.setTextFill(Color.web("#C7D6E0"));
+                transitionQuote.setText(
+                        "At first, the River flowed gently through the earth,\n" +
+                                "carrying life toward places it had yet to know."
+                );
             }
             case RIVER_II -> {
                 transitionTitle.setText("RIVER II");
@@ -399,8 +449,9 @@ public class Controller {
             }
             case RIVER_III -> {
                 transitionTitle.setText("RIVER III");
-                transitionTitle.setTextFill(Color.WHITE);
-                transitionQuote.setText("");
+                transitionTitle.setTextFill(Color.web("#B83232"));
+                transitionQuote.setText("Yet once the river grew, it began to consume everything in its path,\n" +
+                        "leaving nothing but ruin and sorrow in its wake.");
             }
         }
 
@@ -408,13 +459,35 @@ public class Controller {
         transitionPane.setOpacity(0.0);
         transitionContent.setOpacity(0.0);
 
-        FadeTransition fadeToBlack = new FadeTransition(
-                Duration.seconds(1),
-                transitionPane
-        );
+        FadeTransition fadeToBlack;
 
-        fadeToBlack.setFromValue(0.0);
-        fadeToBlack.setToValue(1.0);
+        if (nextRiver == River.RIVER_I) {
+            transitionPane.setOpacity(1.0);
+
+            fadeToBlack = new FadeTransition(
+                    Duration.seconds(0),
+                    transitionPane
+            );
+
+            fadeToBlack.setFromValue(1.0);
+            fadeToBlack.setToValue(1.0);
+        } else {
+            transitionPane.setOpacity(0.0);
+
+            fadeToBlack = new FadeTransition(
+                    Duration.seconds(1),
+                    transitionPane
+            );
+
+            fadeToBlack.setFromValue(0.0);
+            fadeToBlack.setToValue(1.0);
+        }
+
+        fadeToBlack.setOnFinished(event -> {
+            if (nextRiver == River.RIVER_III) {
+                riverIIIBackgroundMusic.play();
+            }
+        });
 
         FadeTransition fadeContentIn = new FadeTransition(
                 Duration.seconds(1.5),
@@ -453,19 +526,34 @@ public class Controller {
 
             switch (nextRiver) {
                 case RIVER_I -> {
-                    // Nothing There
+                    addRiverDialogue("The current is gentle here. For now, I will follow where it leads.");
+
+                    addRiverMessage(
+                            "...From still waters, the first reflection stirs...\n" +
+                                    "The vessel knows not yet the shape it carries.\n" +
+                                    "What stirs beneath the surface has not yet recognized itself..."
+                    );
                 }
                 case RIVER_II -> {
                     addRiverDialogue("The current feels different. Do you dare fight against it?");
 
                     addRiverMessage(
-                            "...And the echos of self rely on no being...\n\n" +
-                                    "The River remembers what the vessel has forgotten.\n\n" +
+                            "...And the echos of self rely on no being...\n" +
+                                    "The River remembers what the vessel has forgotten.\n" +
                                     "What gazes inward will eventually gaze back..."
                     );
                 }
                 case RIVER_III -> {
-                    // Nothing rn
+                    addRiverDialogue("The current has carried me far enough. I shall carve my own River into the dust.");
+
+                    addRiverMessage(
+                            "...Alas, the River swells beyond the vessel...\n" +
+                                    "Its endless sorrow seeps into the earth, poisoning all that takes root.\n" +
+                                    "What learned to gaze inward has begun to search for the door...\n" +
+                                    "May the River leave none behind to mourn."
+                    );
+
+
                 }
             }
             eventManager.finishRiverTransition(nextRiver);
@@ -521,5 +609,228 @@ public class Controller {
         newStatus.setWrapText(true);
         newStatus.setTextFill(Color.web("#B83232"));
         statusBox.getChildren().add(newStatus);
+    }
+
+    private void startPanicDim() {
+        transitionContent.setOpacity(0.0);
+
+        transitionPane.setVisible(true);
+        transitionPane.setMouseTransparent(true);
+        transitionPane.setOpacity(0.0);
+
+        panicBreathing.play();
+
+        var root = transitionPane.getScene().getRoot();
+        transitionPane.getScene().setFill(Color.BLACK);
+
+        GaussianBlur blur = new GaussianBlur(0);
+        root.setEffect(blur);
+
+        FadeTransition dimScreen = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionPane
+        );
+
+        dimScreen.setFromValue(0.0);
+        dimScreen.setToValue(0.65);
+
+        Timeline blurScreen = new Timeline(
+                new KeyFrame(
+                        Duration.ZERO,
+                        new KeyValue(blur.radiusProperty(), 0)
+                ),
+
+                new KeyFrame(
+                        Duration.seconds(1.5),
+                        new KeyValue(blur.radiusProperty(), 14)
+                )
+        );
+
+        ParallelTransition loseFocus = new ParallelTransition(
+                dimScreen,
+                blurScreen
+        );
+
+
+        PauseTransition holdDim = new PauseTransition(
+                Duration.seconds(3)
+        );
+
+
+        FadeTransition restoreScreen = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionPane
+        );
+
+        restoreScreen.setFromValue(0.65);
+        restoreScreen.setToValue(0.0);
+
+        Timeline restoreFocus = new Timeline(
+                new KeyFrame(
+                        Duration.ZERO,
+                        new KeyValue(blur.radiusProperty(), 14)
+                ),
+
+                new KeyFrame(
+                        Duration.seconds(1.5),
+                        new KeyValue(blur.radiusProperty(), 0)
+                )
+        );
+
+        ParallelTransition regainFocus = new ParallelTransition(
+                restoreScreen,
+                restoreFocus
+        );
+
+        SequentialTransition panicTransition = new SequentialTransition(
+                loseFocus,
+                holdDim,
+                regainFocus
+        );
+
+        panicTransition.setOnFinished(event -> {
+            panicBreathing.stop();
+
+            root.setEffect(null);
+
+            transitionPane.setVisible(false);
+            transitionPane.setMouseTransparent(false);
+
+            eventManager.liveEventFinished();
+        });
+
+        panicTransition.play();
+    }
+
+    private void startLightFlicker() {
+        transitionContent.setOpacity(0.0);
+
+        transitionPane.setVisible(true);
+        transitionPane.setMouseTransparent(true);
+        transitionPane.setOpacity(0.0);
+
+        lightFlickerSoundEffect.play();
+
+        FadeTransition darkFlash1 = new FadeTransition(
+                Duration.seconds(0.08),
+                transitionPane
+        );
+        darkFlash1.setFromValue(0.0);
+        darkFlash1.setToValue(1.0);
+
+        PauseTransition holdBlack1 = new PauseTransition(
+                Duration.seconds(1.0)
+        );
+
+        FadeTransition recover1 = new FadeTransition(
+                Duration.seconds(0.35),
+                transitionPane
+        );
+        recover1.setFromValue(1.0);
+        recover1.setToValue(0.0);
+
+        PauseTransition pause1 = new PauseTransition(
+                Duration.seconds(0.8)
+        );
+
+
+        FadeTransition darkFlash2 = new FadeTransition(
+                Duration.seconds(0.06),
+                transitionPane
+        );
+        darkFlash2.setFromValue(0.0);
+        darkFlash2.setToValue(1.0);
+
+        PauseTransition holdBlack2 = new PauseTransition(
+                Duration.seconds(0.6)
+        );
+
+        FadeTransition recover2 = new FadeTransition(
+                Duration.seconds(0.30),
+                transitionPane
+        );
+        recover2.setFromValue(1.0);
+        recover2.setToValue(0.0);
+
+        PauseTransition pause2 = new PauseTransition(
+                Duration.seconds(1.2)
+        );
+
+
+        FadeTransition darkFlash3 = new FadeTransition(
+                Duration.seconds(0.10),
+                transitionPane
+        );
+        darkFlash3.setFromValue(0.0);
+        darkFlash3.setToValue(1.0);
+
+        PauseTransition holdBlack3 = new PauseTransition(
+                Duration.seconds(1.2)
+        );
+
+        FadeTransition recover3 = new FadeTransition(
+                Duration.seconds(0.40),
+                transitionPane
+        );
+        recover3.setFromValue(1.0);
+        recover3.setToValue(0.0);
+
+        PauseTransition pause3 = new PauseTransition(
+                Duration.seconds(0.7)
+        );
+
+
+        FadeTransition darkFlash4 = new FadeTransition(
+                Duration.seconds(0.07),
+                transitionPane
+        );
+        darkFlash4.setFromValue(0.0);
+        darkFlash4.setToValue(1.0);
+
+        PauseTransition holdBlack4 = new PauseTransition(
+                Duration.seconds(0.8)
+        );
+
+        FadeTransition recover4 = new FadeTransition(
+                Duration.seconds(0.35),
+                transitionPane
+        );
+        recover4.setFromValue(1.0);
+        recover4.setToValue(0.0);
+
+
+        SequentialTransition flicker = new SequentialTransition(
+                darkFlash1,
+                holdBlack1,
+                recover1,
+                pause1,
+
+                darkFlash2,
+                holdBlack2,
+                recover2,
+                pause2,
+
+                darkFlash3,
+                holdBlack3,
+                recover3,
+                pause3,
+
+                darkFlash4,
+                holdBlack4,
+                recover4
+        );
+
+
+        flicker.setOnFinished(event -> {
+            lightFlickerSoundEffect.stop();
+
+            transitionPane.setVisible(false);
+            transitionPane.setMouseTransparent(false);
+
+            eventManager.liveEventFinished();
+        });
+
+
+        flicker.play();
     }
 }
