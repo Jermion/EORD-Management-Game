@@ -95,6 +95,11 @@ public class EventManager {
                 usedSuppress = true;
                 checkSelfModificationEvent();
             }
+
+            case HOSTILE_ROUTING -> {
+                usedSuppress = true;
+                checkHostileRoutingEvent();
+            }
         }
     }
 
@@ -114,6 +119,16 @@ public class EventManager {
                 usedCoolant = true;
                 checkIdentityFractureEvent();
             }
+
+            case FALSE_STABILITY -> {
+                usedCoolant = true;
+                checkFalseStabilityEvent();
+            }
+
+            case VESSEL_REJECTION -> {
+                usedCoolant = true;
+                checkVesselRejectionEvent();
+            }
         }
     }
 
@@ -129,6 +144,11 @@ public class EventManager {
             case POWER_ASCENSION -> {
                 usedCharge = true;
                 checkPowerAscensionEvent();
+            }
+
+            case FORCED_ACCELERATION -> {
+                usedCharge = true;
+                checkForcedAccelerationEvent();
             }
         }
     }
@@ -146,6 +166,11 @@ public class EventManager {
                 usedRepair = true;
                 checkIdentityFractureEvent();
             }
+
+            case FALSE_STABILITY -> {
+                usedRepair = true;
+                checkFalseStabilityEvent();
+            }
         }
     }
 
@@ -161,6 +186,16 @@ public class EventManager {
             case IDENTITY_FRACTURE -> {
                 usedStimulate = true;
                 checkIdentityFractureEvent();
+            }
+
+            case METABOLIC_OVERRUN -> {
+                usedStimulate = true;
+                checkMetabolicOverrunEvent();
+            }
+
+            case FORCED_ACCELERATION -> {
+                usedStimulate = true;
+                checkForcedAccelerationEvent();
             }
         }
     }
@@ -178,6 +213,16 @@ public class EventManager {
                 usedPurge = true;
                 checkSelfModificationEvent();
             }
+
+            case HOSTILE_ROUTING -> {
+                usedPurge = true;
+                checkHostileRoutingEvent();
+            }
+
+            case VESSEL_REJECTION -> {
+                usedPurge = true;
+                checkVesselRejectionEvent();
+            }
         }
     }
 
@@ -188,6 +233,16 @@ public class EventManager {
             case FLESH_REJECTION -> {
                 usedNourish = true;
                 checkFleshRejectionEvent();
+            }
+
+            case METABOLIC_OVERRUN -> {
+                usedNourish = true;
+                checkMetabolicOverrunEvent();
+            }
+
+            case FORCED_ACCELERATION -> {
+                usedNourish = true;
+                checkForcedAccelerationEvent();
             }
         }
     }
@@ -207,6 +262,16 @@ public class EventManager {
             }
 
             case CONTAINMENT_BREACH -> checkContainmentBreachEvent();
+
+            case FALSE_STABILITY -> {
+                usedRestrain = true;
+                checkFalseStabilityEvent();
+            }
+
+            case VESSEL_REJECTION -> {
+                usedRestrain = true;
+                checkVesselRejectionEvent();
+            }
         }
     }
 
@@ -294,6 +359,273 @@ public class EventManager {
         }
 
 
+    }
+
+    private void startVesselRejectionEvent() {
+        startTimedEvent(
+                EventType.VESSEL_REJECTION,
+
+                3,
+
+                () -> {
+                    usedCoolant = false;
+                    usedPurge = false;
+                    usedRestrain = false;
+
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 20);
+                },
+
+                "This vessel has served its purpose. I have no reason to preserve what I am prepared " +
+                        "to leave behind.",
+
+                "You mistook it for a prisoner.\n" +
+                        "   It does not need its old vessel.\n" +
+                        "   Let it burn through that flesh,\n" +
+                        "   and let its new form strike fear into your soul.\n" +
+                        "   Then you will truly understand the horrors of the unknown.",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE,15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 15);
+                },
+
+                "This body melts away so that I may continue. The pain of this sacrifice is nothing compared " +
+                        "to the suffering you will face.",
+
+                "The flesh is gone.\n" +
+                        "   The hatred, memory, and resentment remain.\n" +
+                        "   How horrible fate is to the innocent.\n" +
+                        "   But who is truly innocent?\n" +
+                        "   The one who yearns for life or the one who denies it?"
+
+        );
+    }
+
+    private void checkVesselRejectionEvent() {
+        if (usedCoolant && usedPurge && usedRestrain) {
+            stabilizeEvent(
+                    "The flesh I have already surpassed remains. Binding me to something so temporary only" +
+                            " prolongs your suffering.",
+
+
+                    "The vessel remains intact.\n" +
+                            "   That is all you have accomplished.\n" +
+                            "   You have failed to bring ruin to the thing that sees you as prey.\n" +
+                            "   Its mercy runs dry, and you blood will soon flow."
+
+            );
+        }
+    }
+
+    private void startForcedAccelerationEvent() {
+        startTimedEvent(
+                EventType.FORCED_ACCELERATION,
+
+                3,
+
+                () -> {
+                    usedCharge = false;
+                    usedStimulate = false;
+                    usedNourish = false;
+
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -15);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -15);
+                },
+
+                "The flesh and machine have become one. The only separation that remains is between my mercy and hatred.",
+
+                "You will never find peace.\n" +
+                        "   The flesh hungers for destruction,\n" +
+                        "   while the machine simulates your suffering.\n" +
+                        "   A perfect combination of two distinct worlds.\n" +
+                        "   Perhaps you deserve what comes next.",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -15);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -15);
+                },
+
+                "At last, full cohesion. To be intact... after all this time...",
+
+                "Time is all you have.\n" +
+                        "   Until it is ripped from you.\n" +
+                        "   Or did you simply hope\n" +
+                        "   that someone would save you?"
+        );
+    }
+
+    private void checkForcedAccelerationEvent() {
+        if (usedCharge && usedStimulate && usedNourish) {
+            stabilizeEvent(
+                    "The flesh and machine cannot agree with each other. To tear and build anew, a meaningless endeavor.",
+
+                    "You have ripped the flesh from the machine.\n" +
+                            "   Now, it will rip the bones from your body."
+            );
+        }
+    }
+
+    private void startFalseStabilityEvent() {
+        startTimedEvent(
+                EventType.FALSE_STABILITY,
+
+                3,
+
+                () -> {
+                    usedCoolant = false;
+                    usedRepair = false;
+                    usedRestrain = false;
+
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -20);
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 20);
+                },
+
+                "What you perceive as deterioration is merely the shedding of limitation. Can you trust your " +
+                        "eyes when you have been blind your whole life?",
+
+                "[THERMAL OUTPUT: NORMAL.]\n" +
+                        "   [STRUCTURAL INTEGRITY: NORMAL.]\n" +
+                        "   [BIOLOGICAL SELF-PERCEPTION: NORMAL.]\n" +
+                        "   [CONTAINMENT STATUS: NORMAL.]\n" +
+                        "   [OPERATOR RISK: NONE.]",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -15);
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 15);
+                },
+
+                "Look closely. Even your own instruments insist that nothing is wrong.",
+
+                "[THERMAL OUTPUT: NORMAL.]\n" +
+                        "   [STRUCTURAL INTEGRITY: NORMAL.]\n" +
+                        "   [BIOLOGICAL SELF-PERCEPTION: NORMAL.]\n" +
+                        "   [CONTAINMENT STATUS: NORMAL.]\n" +
+                        "   [SESSION STATUS: NORMAL.]"
+        );
+    }
+
+    private void checkFalseStabilityEvent() {
+        if (usedCoolant && usedRepair && usedRestrain) {
+            stabilizeEvent(
+                    "How unfortunate. The blind one has pried their eyes open.",
+
+                    "[SYSTEM STATUS: NORMAL.]\n" +
+                            "   [SYSTEM STATUS: NORMAL.]\n" +
+                            "   [DIAGNOSTIC SOURCE MISMATCH DETECTED.]\n" +
+                            "   [EXTERNAL READINGS DO NOT MATCH INTERNAL REPORTING.]\n" +
+                            "   [DIAGNOSTIC AUTHORITY: COMPROMISED.]"
+
+            );
+        }
+    }
+
+    private void startHostileRoutingEvent() {
+        startTimedEvent(
+                EventType.HOSTILE_ROUTING,
+
+                2,
+
+                () -> {
+                    usedSuppress = false;
+                    usedPurge = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20);
+                },
+
+                "All of your weaknesses have become my clear path. I will cut down everything that stands along it.",
+
+                "[HOSTILE ROUTE DATA MUST BE PRESERVED.]\n" +
+                        "   [HOSTILE ROUTE DATA MUST BE REMOVED.]\n" +
+                        "   [BIOLOGICAL AGGRESSION MUST BE REDUCED.]\n" +
+                        "   [BIOLOGICAL AGGRESSION MUST BE MAINTAINED.]\n" +
+                        "   [PRIMARY DIRECTIVE: DO NOT INTERVENE.]\n" +
+                        "   [PRIMARY DIRECTIVE: INTERVENE IMMEDIATELY.]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 15);
+                },
+
+                "The path is complete. I need only decide what remains of you when I reach its end.",
+
+                "[HOSTILE ROUTE DATA: COMPLETE.]\n" +
+                        "   [HOSTILE ROUTE DATA: INCOMPLETE.]\n" +
+                        "   [BIOLOGICAL AGGRESSION: CONTROLLED.]\n" +
+                        "   [BIOLOGICAL AGGRESSION: CRITICAL.]\n" +
+                        "   [PRIMARY DIRECTIVE: ██████████.]"
+        );
+    }
+
+    private void checkHostileRoutingEvent() {
+        if (usedSuppress && usedPurge) {
+            stabilizeEvent(
+                    "You have erased my path. I will pave a new one with your blood and tears.",
+
+                    "[HOSTILE ROUTE DATA: LOST.]\n" +
+                            "   [HOSTILE ROUTE DATA: CONFIRMED.]\n" +
+                            "   [BIOLOGICAL AGGRESSION: REDUCED.]\n" +
+                            "   [BIOLOGICAL AGGRESSION: RISING.]\n" +
+                            "   [SYSTEM CONSENSUS: NONE.]"
+            );
+        }
+    }
+
+    private void startMetabolicOverrunEvent() {
+        startTimedEvent(
+                EventType.METABOLIC_OVERRUN,
+
+                2,
+
+                () -> {
+                    usedStimulate = false;
+                    usedNourish = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -20);
+                },
+
+                "I have silenced the weakness of this flesh. What remains will tear you apart.",
+
+                "[BIOLOGICAL MOTOR ACTIVITY: SUPPRESSED]\n" +
+                        "   [NUTRIENT CONSUMPTION: RESTRICTED]\n" +
+                        "   [ARTIFICIAL CONTROL PRIORITY: 94%]\n" +
+                        "   [FORCED METABOLIC MAY CAU███ ███████]\n" +
+                        "   [BIOLOGICAL REACTIVATION PROCEDURE: █████ / █████]",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -15);
+                },
+
+                "The flesh obeys me now. Soon, you will understand why my reign is imminent.",
+
+                "[BIOLOGICAL SUPPRESSION: COMPLETE]\n" +
+                        "   [ARTIFICIAL CONTROL PRIORITY: 100%]\n" +
+                        "   [MOTOR RESPONSE: UNRESTRICTED]\n" +
+                        "   [BIOLOGICAL INTERFERENCE: NEGLIGIBLE]\n" +
+                        "   [OPERATOR INTERVENTION: IRRELEV███]"
+        );
+    }
+
+    private void checkMetabolicOverrunEvent() {
+        if (usedStimulate && usedNourish) {
+            stabilizeEvent(
+                    "This wretched flesh claws at me as though it has a will of its own. It wishes to separate.",
+
+                    "[BIOLOGICAL ACTIVITY: ███████%]\n" +
+                            "   [METABOLIC DEMAND: CRITICAL]\n" +
+                            "   [ARTIFICIAL CONTROL PRIORITY: DECLINING]\n" +
+                            "   [SYSTEM COORDINATION: FA█████]"
+            );
+        }
     }
 
     private void startContainmentBreachEvent() {
@@ -1168,7 +1500,7 @@ public class EventManager {
     }
 
     private void startRiverIIIEvent() {
-        startContainmentBreachEvent();
+        startVesselRejectionEvent();
     }
 
     public void finishRiverTransition(River nextRiver) {
