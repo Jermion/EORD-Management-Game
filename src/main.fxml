@@ -404,6 +404,48 @@
 
         </StackPane>
 
+
+        <!-- GAME OVER OVERLAY -->
+        <StackPane fx:id="gameOverPane"
+                   visible="false"
+                   opacity="0.0"
+                   style="-fx-background-color: black;"
+                   AnchorPane.topAnchor="0.0"
+                   AnchorPane.bottomAnchor="0.0"
+                   AnchorPane.leftAnchor="0.0"
+                   AnchorPane.rightAnchor="0.0">
+
+            <children>
+
+                <VBox fx:id="gameOverContent"
+                      alignment="CENTER"
+                      spacing="18.0"
+                      maxWidth="1200.0">
+
+                    <children>
+
+                        <ImageView fx:id="gameOverImage"
+                                   fitWidth="1000.0"
+                                   fitHeight="600.0"
+                                   preserveRatio="true"
+                                   smooth="true" />
+
+                        <Label fx:id="gameOverText"
+                               text="GAME OVER"
+                               textFill="WHITE"
+                               wrapText="true"
+                               alignment="CENTER"
+                               textAlignment="CENTER"
+                               maxWidth="1000.0" />
+
+                    </children>
+
+                </VBox>
+
+            </children>
+
+        </StackPane>
+
     </children>
 
 </AnchorPane>

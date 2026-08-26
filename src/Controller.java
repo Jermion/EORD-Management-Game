@@ -36,10 +36,18 @@ public class Controller {
     private Creature creature;
     private EventManager eventManager;
     private long startTime;
+    private boolean gameOverActive;
 
     private AudioClip panicBreathing;
     private AudioClip lightFlickerSoundEffect;
     private MediaPlayer riverIIIBackgroundMusic;
+    private AudioClip gameOverSoundEffect;
+
+    private String[] gameOverMessages = {
+            "Your sins have outlived the flesh they condemned.",
+            "May your soul carry the memory of what your hands failed to save.",
+            "Carry this failure with you. Let it weigh upon every life that follows."
+    };
 
     @FXML
     private Label prideLabel;
@@ -96,9 +104,23 @@ public class Controller {
     private Label transitionFooter;
 
     @FXML
+    private StackPane gameOverPane;
+
+    @FXML
+    private VBox gameOverContent;
+
+    @FXML
+    private ImageView gameOverImage;
+
+    @FXML
+    private Label gameOverText;
+
+
+    @FXML
     public void initialize() {
         creature = new Creature();
         startTime = System.currentTimeMillis();
+        gameOverActive = false;
         eventManager = new EventManager(
                 creature,
                 // the 'this::' allows EventManager to use these methods
@@ -114,7 +136,9 @@ public class Controller {
 
                 this::startRiverTransition,
                 this::startPanicDim,
-                this::startLightFlicker
+                this::startLightFlicker,
+
+                this::startGameOverSequence
                 );
 
         updateStatusLabels();
@@ -140,6 +164,11 @@ public class Controller {
         riverIIIBackgroundMusic.setVolume(0.35);
         riverIIIBackgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
 
+        gameOverSoundEffect = new AudioClip(
+                Paths.get("audio", "gameover.wav").toUri().toString()
+        );
+        gameOverSoundEffect.setVolume(0.8);
+
         dialogueBox.heightProperty().addListener((observableValue, oldValue, newValue) -> {
             dialogueScrollPane.setVvalue(1.0);
         });
@@ -149,6 +178,7 @@ public class Controller {
         });
 
         startIntroSequence();
+
 
 
     }
@@ -562,6 +592,62 @@ public class Controller {
         transition.play();
     }
 
+    private void startGameOverSequence() {
+        if (!gameOverActive) {
+            gameOverActive = true;
+
+            if (panicBreathing.isPlaying()) {
+                panicBreathing.stop();
+            }
+
+            if (lightFlickerSoundEffect.isPlaying()) {
+                lightFlickerSoundEffect.stop();
+            }
+
+            if (riverIIIBackgroundMusic != null) {
+                riverIIIBackgroundMusic.stop();
+            }
+
+            gameOverSoundEffect.play();
+
+            int messageChoice = (int) (Math.random() * gameOverMessages.length);
+
+            gameOverText.setText(gameOverMessages[messageChoice]);
+
+            gameOverImage.setImage(new Image(
+                    Paths.get("images", "gameOverImage.png").toUri().toString()
+            ));
+
+            gameOverPane.setMouseTransparent(false);
+            gameOverPane.setVisible(true);
+            gameOverPane.setOpacity(0.0);
+            gameOverContent.setOpacity(0.0);
+
+            FadeTransition fadeToBlack = new FadeTransition(
+                    Duration.seconds(2),
+                    gameOverPane
+            );
+
+            fadeToBlack.setFromValue(0.0);
+            fadeToBlack.setToValue(1.0);
+
+            FadeTransition fadeContentIn = new FadeTransition(
+                    Duration.seconds(1.5),
+                    gameOverContent
+            );
+
+            fadeContentIn.setFromValue(0.0);
+            fadeContentIn.setToValue(1.0);
+
+            SequentialTransition gameOverTransition = new SequentialTransition(
+                    fadeToBlack,
+                    fadeContentIn
+            );
+
+            gameOverTransition.play();
+        }
+    }
+
     private void loadFonts() {
         try {
             Font quoteFont = Font.loadFont(
@@ -588,6 +674,8 @@ public class Controller {
             transitionQuote.setFont(quoteFont);
             transitionTitle.setFont(titleFont);
             transitionFooter.setFont(footerFont);
+
+            gameOverText.setFont(quoteFont);
 
         } catch (IOException e) {
             e.printStackTrace();

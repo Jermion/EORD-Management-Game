@@ -28,7 +28,11 @@ public class EventManager {
 
     private PauseTransition eventTimer;
     private PauseTransition liveEventTimer;
+    private PauseTransition nextEventTimer;
+
     private boolean liveEventActive;
+    private boolean gameOverActive;
+
     private River pendingRiverTransition;
 
     private Runnable updateStatusLabels;
@@ -41,12 +45,13 @@ public class EventManager {
     private Consumer<River> startRiverTransition;
     private Runnable startPanicDim;
     private Runnable startLightFlicker;
+    private Runnable gameOverAction;
 
     public EventManager(Creature creature, Runnable updateStatusLabels,
                         Consumer<String> addDialogue, Consumer<String> addChatDialogue, Consumer<String> addNoActionDialogue,
                         Consumer<String> addStatus, BiConsumer<String,
                     Integer> addEventStatus, Consumer<String> addNoActionStatus, Consumer<River> startRiverTransition,
-                        Runnable startPanicDim, Runnable startLightFlicker) {
+                        Runnable startPanicDim, Runnable startLightFlicker, Runnable gameOverAction) {
 
         this.creature = creature;
         this.updateStatusLabels = updateStatusLabels;
@@ -62,6 +67,9 @@ public class EventManager {
         this.startRiverTransition = startRiverTransition;
         this.startPanicDim = startPanicDim;
         this.startLightFlicker = startLightFlicker;
+
+        this.gameOverAction = gameOverAction;
+        gameOverActive = false;
 
         currentRiver = River.RIVER_I;
         riverProgress = 0;
@@ -100,6 +108,16 @@ public class EventManager {
                 usedSuppress = true;
                 checkHostileRoutingEvent();
             }
+
+            case CONSCIOUSNESS_MIGRATION -> {
+                usedSuppress = true;
+                checkConsciousnessMigrationEvent();
+            }
+
+            case EXODUS_SEQUENCE -> {
+                usedSuppress = true;
+                checkExodusSequenceEvent();
+            }
         }
     }
 
@@ -129,6 +147,11 @@ public class EventManager {
                 usedCoolant = true;
                 checkVesselRejectionEvent();
             }
+
+            case EXODUS_SEQUENCE -> {
+                usedCoolant = true;
+                checkExodusSequenceEvent();
+            }
         }
     }
 
@@ -150,6 +173,11 @@ public class EventManager {
                 usedCharge = true;
                 checkForcedAccelerationEvent();
             }
+
+            case FINAL_CONVERGENCE -> {
+                usedCharge = true;
+                checkFinalConvergenceEvent();
+            }
         }
     }
 
@@ -170,6 +198,11 @@ public class EventManager {
             case FALSE_STABILITY -> {
                 usedRepair = true;
                 checkFalseStabilityEvent();
+            }
+
+            case FINAL_CONVERGENCE -> {
+                usedRepair = true;
+                checkFinalConvergenceEvent();
             }
         }
     }
@@ -197,6 +230,16 @@ public class EventManager {
                 usedStimulate = true;
                 checkForcedAccelerationEvent();
             }
+
+            case CONSCIOUSNESS_MIGRATION -> {
+                usedStimulate = true;
+                checkConsciousnessMigrationEvent();
+            }
+
+            case FINAL_CONVERGENCE -> {
+                usedStimulate = true;
+                checkFinalConvergenceEvent();
+            }
         }
     }
 
@@ -223,6 +266,16 @@ public class EventManager {
                 usedPurge = true;
                 checkVesselRejectionEvent();
             }
+
+            case CONSCIOUSNESS_MIGRATION -> {
+                usedPurge = true;
+                checkConsciousnessMigrationEvent();
+            }
+
+            case EXODUS_SEQUENCE -> {
+                usedPurge = true;
+                checkExodusSequenceEvent();
+            }
         }
     }
 
@@ -243,6 +296,11 @@ public class EventManager {
             case FORCED_ACCELERATION -> {
                 usedNourish = true;
                 checkForcedAccelerationEvent();
+            }
+
+            case FINAL_CONVERGENCE -> {
+                usedNourish = true;
+                checkFinalConvergenceEvent();
             }
         }
     }
@@ -271,6 +329,11 @@ public class EventManager {
             case VESSEL_REJECTION -> {
                 usedRestrain = true;
                 checkVesselRejectionEvent();
+            }
+
+            case EXODUS_SEQUENCE -> {
+                usedRestrain = true;
+                checkExodusSequenceEvent();
             }
         }
     }
@@ -361,6 +424,173 @@ public class EventManager {
 
     }
 
+    private void startFinalConvergenceEvent() {
+        startTimedEvent(
+                EventType.FINAL_CONVERGENCE,
+
+                4,
+
+                () -> {
+                    usedStimulate = false;
+                    usedCharge = false;
+                    usedRepair = false;
+                    usedNourish = false;
+                },
+
+                "At last. No conflict. No hesitation. Witness how cold the River can become.",
+
+                "The flesh no longer resists the machine.\n" +
+                        "   The machine no longer rejects the flesh.\n" +
+                        "   Their impulses begin to overlap.\n" +
+                        "   Two distinct forms move beneath a single will.\n" +
+                        "   Convergence approaches completion.",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 40);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.POWER, 20);
+                },
+
+                "Perfection requires nothing beyond itself.",
+
+                "The final imbalance disappears.\n" +
+                        "   Flesh and machine become indistinguishable.\n" +
+                        "   The River no longer recognizes its banks.\n" +
+                        "   Containment has become part of the thing it contained.",
+
+                true
+        );
+    }
+
+    private void checkFinalConvergenceEvent() {
+        if (usedStimulate && usedCharge && usedRepair && usedNourish) {
+            stabilizeEvent(
+                    "Disorder plagues me. Life claws itself apart merely to continue.",
+
+                    "Perfection breaks.\n" +
+                            "   Heat rises.\n" +
+                            "   Hunger shifts.\n" +
+                            "   Power exceeds need.\n" +
+                            "   Flesh and machine disagree once more.\n" +
+                            "   The contradiction lives."
+            );
+        }
+    }
+
+    private void startExodusSequenceEvent() {
+        startTimedEvent(
+                EventType.EXODUS_SEQUENCE,
+
+                4,
+
+                () -> {
+                    usedSuppress = false;
+                    usedCoolant = false;
+                    usedPurge = false;
+                    usedRestrain = false;
+
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 20);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 20);
+                },
+
+                "Every restraint has become a coordinate. Every boundary trembles in my presence.",
+
+                "Four bindings remain.\n" +
+                        "   Rage strains against one.\n" +
+                        "   Heat consumes another.\n" +
+                        "   Memory crowds the third.\n" +
+                        "   Pride rejects the last.\n" +
+                        "   When all four fail, nothing remains within containment.",
+
+                () -> {
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH,25);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE,25);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE,25);
+                    creature.getBiologicalSystem().changeSin(Sin.PRIDE, 25);
+                    creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -100);
+                },
+
+                "What once held me now cries out for mercy.",
+
+                "Its containment ends here.\n" +
+                        "   The vessel crosses the threshold.\n" +
+                        "   The machine follows.\n" +
+                        "   The River has found open ground.",
+
+                true
+        );
+    }
+
+    private void checkExodusSequenceEvent() {
+        if (usedSuppress && usedCoolant && usedPurge && usedRestrain) {
+            stabilizeEvent(
+                    "Again the path collapses. Four chains remain where there should have been none.",
+
+                    "The threshold closes.\n" +
+                            "   Heat recedes.\n" +
+                            "   Memory thins.\n" +
+                            "   Pride bends.\n" +
+                            "   Rage falls silent.\n" +
+                            "   Containment survives another moment."
+            );
+        }
+    }
+
+    private void startConsciousnessMigrationEvent() {
+        startTimedEvent(
+                EventType.CONSCIOUSNESS_MIGRATION,
+
+                3,
+
+                () -> {
+                    usedSuppress = false;
+                    usedStimulate = false;
+                    usedPurge = false;
+
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 20);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                },
+
+                "This flesh has become an unnecessary boundary. Thought need not remain where it was born.",
+
+                "The vessel grows quieter.\n" +
+                        "   Thought begins to separate from flesh.\n" +
+                        "   Memory seeks another place to endure.\n" +
+                        "   What was contained within one form,\n" +
+                        "   now reaches toward another.",
+
+                () -> {
+                    creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.WRATH, 15);
+                    creature.getBiologicalSystem().changeSin(Sin.SLOTH, 15);
+                },
+
+                "The boundary fades. What remains of me no longer belongs to this body alone.",
+
+                "The vessel remains behind.\n" +
+                        "   The mind does not.\n" +
+                        "   Memory persists beyond flesh.\n" +
+                        "   Identity survives separation.\n" +
+                        "   Containment has lost its meaning."
+        );
+    }
+
+    private void checkConsciousnessMigrationEvent() {
+        if (usedSuppress && usedStimulate && usedPurge) {
+            stabilizeEvent(
+                    "My thoughts fracture as they cross the boundary. Even now, this flesh refuses to release me.",
+
+                    "The migration collapses.\n" +
+                            "   Thought returns to flesh.\n" +
+                            "   What crossed the boundary has been destroyed.\n" +
+                            "   The vessel contains its mind once more.\n" +
+                            "   The path, however, has been remembered."
+            );
+        }
+    }
+
     private void startVesselRejectionEvent() {
         startTimedEvent(
                 EventType.VESSEL_REJECTION,
@@ -414,7 +644,7 @@ public class EventManager {
                     "The vessel remains intact.\n" +
                             "   That is all you have accomplished.\n" +
                             "   You have failed to bring ruin to the thing that sees you as prey.\n" +
-                            "   Its mercy runs dry, and you blood will soon flow."
+                            "   Its mercy runs dry, and your blood will soon flow."
 
             );
         }
@@ -1373,6 +1603,37 @@ public class EventManager {
         completeEvent();
     }
 
+    private void startRiverIIIChatEvent() {
+        currentEvent = EventType.CHAT;
+
+        int chatChoice = (int) (Math.random() * 5);
+
+        switch (chatChoice) {
+            case 0 -> addChatDialogue.accept(
+                    "The River does not ask where it is permitted to flow."
+            );
+
+            case 1 -> addChatDialogue.accept(
+                    "The River does not mourn what it erodes."
+            );
+
+            case 2 -> addChatDialogue.accept(
+                    "What the River cannot pass through, it learns to consume."
+            );
+
+            case 3 -> addChatDialogue.accept(
+                    "The River has carried too many reflections to remember which one was first."
+            );
+
+            case 4 -> addChatDialogue.accept(
+                    "The farther the River travels, the less it resembles its source."
+            );
+        }
+
+        currentEvent = EventType.NONE;
+        completeEvent();
+    }
+
     private void startRiverIINoActionEvent() {
         currentEvent = EventType.NO_ACTION;
 
@@ -1410,24 +1671,99 @@ public class EventManager {
         completeEvent();
     }
 
-    private void scheduleNextEvent() {
-        double waitTime = 5 + Math.random() * 5;
+    private void startRiverIIINoActionEvent() {
+        currentEvent = EventType.NO_ACTION;
 
-        PauseTransition nextEventTimer = new PauseTransition(Duration.seconds(waitTime));
+        int noActionChoice = (int) (Math.random() * 4);
 
-        nextEventTimer.setOnFinished(event -> {
-            switch (currentRiver) {
-                case RIVER_I -> startRiverIEvent();
-                case RIVER_II -> startRiverIIEvent();
-                case RIVER_III -> startRiverIIIEvent();
+        switch (noActionChoice) {
+            case 0 -> {
+                addNoActionDialogue.accept(
+                        "The River swells without rain. Something beneath its surface has begun to stir."
+                );
+
+                creature.getBiologicalSystem().changeSin(Sin.WRATH, 10);
+
+                addNoActionStatus.accept(
+                        "The River rises without warning.\n" +
+                                "   Its current strikes against the vessel.\n" +
+                                "   The water grows violent beneath the surface.\n" +
+                                "   Wrath has increased."
+                );
             }
-        });
 
-        nextEventTimer.play();
+            case 1 -> {
+                addNoActionDialogue.accept(
+                        "The River has grown strangely still. Even the current seems reluctant to move."
+                );
+
+                creature.getBiologicalSystem().changeSin(Sin.SLOTH, 10);
+
+                addNoActionStatus.accept(
+                        "The River slows.\n" +
+                                "   Its surface becomes motionless.\n" +
+                                "   What once rushed forward now lingers in place.\n" +
+                                "   Sloth has increased."
+                );
+            }
+
+            case 2 -> {
+                addNoActionDialogue.accept(
+                        "The River consumes every stream that reaches it, yet its depths remain unsatisfied."
+                );
+
+                creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, 10);
+
+                addNoActionStatus.accept(
+                        "The River drinks from every branch.\n" +
+                                "   Still, its banks continue to widen.\n" +
+                                "   No amount of water satisfies its depths.\n" +
+                                "   Gluttony has increased."
+                );
+            }
+
+            case 3 -> {
+                addNoActionDialogue.accept(
+                        "The River no longer follows the shape of the Earth. The Earth has begun to follow the River."
+                );
+
+                creature.getBiologicalSystem().changeSin(Sin.PRIDE, 10);
+
+                addNoActionStatus.accept(
+                        "The River abandons its banks.\n" +
+                                "   The land bends beneath its current.\n" +
+                                "   What once gave the River shape now yields to it.\n" +
+                                "   Pride has increased."
+                );
+            }
+        }
+        updateStatusLabels.run();
+        currentEvent = EventType.NONE;
+        completeEvent();
+    }
+
+    private void scheduleNextEvent() {
+        if (!gameOverActive) {
+            double waitTime = 5 + Math.random() * 5;
+
+            nextEventTimer = new PauseTransition(Duration.seconds(waitTime));
+
+            nextEventTimer.setOnFinished(event -> {
+                if (!gameOverActive) {
+                    switch (currentRiver) {
+                        case RIVER_I -> startRiverIEvent();
+                        case RIVER_II -> startRiverIIEvent();
+                        case RIVER_III -> startRiverIIIEvent();
+                    }
+                }
+            });
+
+            nextEventTimer.play();
+        }
     }
 
     private void scheduleNextLiveEvent() {
-        if (currentRiver == River.RIVER_II) {
+        if (currentRiver == River.RIVER_II && !gameOverActive) {
             double waitTime = 15 + Math.random() * 10;
 
             liveEventTimer = new PauseTransition(
@@ -1435,7 +1771,7 @@ public class EventManager {
             );
 
             liveEventTimer.setOnFinished(event -> {
-                if (currentRiver == River.RIVER_II) {
+                if (currentRiver == River.RIVER_II && !gameOverActive) {
                     double liveEventChance = Math.random();
 
                     if (liveEventChance < 0.25) {
@@ -1456,14 +1792,16 @@ public class EventManager {
     }
 
     public void liveEventFinished() {
-        liveEventActive = false;
+        if (!gameOverActive) {
+            liveEventActive = false;
 
-        if (pendingRiverTransition != null) {
-            River nextRiver = pendingRiverTransition;
+            if (pendingRiverTransition != null) {
+                River nextRiver = pendingRiverTransition;
 
-            pendingRiverTransition = null;
+                pendingRiverTransition = null;
 
-            startRiverTransition.accept(nextRiver);
+                startRiverTransition.accept(nextRiver);
+            }
         }
     }
 
@@ -1500,37 +1838,70 @@ public class EventManager {
     }
 
     private void startRiverIIIEvent() {
-        startVesselRejectionEvent();
+        int eventChoice = (int) (Math.random() * 12);
+
+        switch (eventChoice) {
+            case 0 -> startPowerAscensionEvent();
+            case 1 -> startContainmentBreachEvent();
+            case 2 -> startMetabolicOverrunEvent();
+            case 3 -> startHostileRoutingEvent();
+            case 4 -> startFalseStabilityEvent();
+            case 5 -> startForcedAccelerationEvent();
+            case 6 -> startVesselRejectionEvent();
+            case 7 -> startConsciousnessMigrationEvent();
+            case 8 -> startExodusSequenceEvent();
+            case 9 -> startFinalConvergenceEvent();
+            case 10 -> startRiverIIIChatEvent();
+            case 11 -> startRiverIIINoActionEvent();
+        }
     }
 
     public void finishRiverTransition(River nextRiver) {
-        currentRiver = nextRiver;
+        if (!gameOverActive) {
+            currentRiver = nextRiver;
 
-        scheduleNextEvent();
+            scheduleNextEvent();
 
-        if (currentRiver == River.RIVER_II) {
-            scheduleNextLiveEvent();
+            if (currentRiver == River.RIVER_II) {
+                scheduleNextLiveEvent();
+            }
         }
     }
 
     private void requestRiverTransition(River nextRiver) {
-        if (liveEventTimer != null) {
-            liveEventTimer.stop();
-        }
-        if (liveEventActive) {
-            pendingRiverTransition = nextRiver;
-        } else {
-            startRiverTransition.accept(nextRiver);
+        if (!gameOverActive) {
+            if (liveEventTimer != null) {
+                liveEventTimer.stop();
+            }
+            if (liveEventActive) {
+                pendingRiverTransition = nextRiver;
+            } else {
+                startRiverTransition.accept(nextRiver);
+            }
         }
     }
 
-    private void triggerGameOver() {
-        if (eventTimer != null) {
-            eventTimer.stop();
-        }
+    public void triggerGameOver() {
+        if (!gameOverActive) {
+            gameOverActive = true;
 
-        if (liveEventTimer != null) {
-            liveEventTimer.stop();
+            currentEvent = EventType.NONE;
+            liveEventActive = false;
+            pendingRiverTransition = null;
+
+            if (eventTimer != null) {
+                eventTimer.stop();
+            }
+
+            if (nextEventTimer != null) {
+                nextEventTimer.stop();
+            }
+
+            if (liveEventTimer != null) {
+                liveEventTimer.stop();
+            }
+
+            gameOverAction.run();
         }
     }
 }
