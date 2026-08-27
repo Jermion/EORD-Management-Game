@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
@@ -16,6 +17,8 @@
 
 <AnchorPane prefHeight="720.0"
             prefWidth="1280.0"
+            stylesheets="@style.css"
+            styleClass="app-root"
             xmlns="http://javafx.com/javafx/25"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="Controller">
@@ -26,14 +29,28 @@
                   AnchorPane.bottomAnchor="0.0"
                   AnchorPane.leftAnchor="0.0"
                   AnchorPane.rightAnchor="0.0"
-                  hgap="8.0"
-                  vgap="8.0">
+                  vgap="10.0"
+                  styleClass="main-grid">
 
-            <!-- FULLSCREEN COLUMN PROPORTIONS -->
+            <padding>
+                <Insets top="12.0"
+                        bottom="12.0"
+                        left="12.0"
+                        right="12.0" />
+            </padding>
+
+            <!--
+                39% ENTITY
+                1% VISIBLE GUTTER
+                25% BIO / ARTIFICIAL
+                35% STATUS
+            -->
             <columnConstraints>
 
-                <ColumnConstraints percentWidth="40.0"
+                <ColumnConstraints percentWidth="39.0"
                                    hgrow="ALWAYS" />
+
+                <ColumnConstraints percentWidth="1.0" />
 
                 <ColumnConstraints percentWidth="25.0"
                                    hgrow="ALWAYS" />
@@ -43,8 +60,6 @@
 
             </columnConstraints>
 
-
-            <!-- FULLSCREEN ROW PROPORTIONS -->
             <rowConstraints>
 
                 <RowConstraints percentHeight="30.0"
@@ -61,11 +76,12 @@
 
             </rowConstraints>
 
-
             <children>
 
-                <!-- IMAGE -->
-                <StackPane GridPane.rowSpan="2">
+                <!-- ENTITY DISPLAY -->
+                <StackPane GridPane.columnIndex="0"
+                           GridPane.rowSpan="2"
+                           styleClass="panel,entity-panel">
 
                     <padding>
                         <Insets top="20.0"
@@ -75,149 +91,163 @@
                     </padding>
 
                     <children>
-                        <Label text="IMAGE" />
+
+                        <ImageView fx:id="entityImageView"
+                                   fitWidth="520.0"
+                                   fitHeight="520.0"
+                                   preserveRatio="true"
+                                   smooth="true"
+                                   mouseTransparent="true" />
+
                     </children>
 
                 </StackPane>
 
+                <!-- VISIBLE SEPARATOR BETWEEN IMAGE AND STAT PANELS -->
+                <Region GridPane.columnIndex="1"
+                        GridPane.rowSpan="2"
+                        maxWidth="1.7976931348623157E308"
+                        maxHeight="1.7976931348623157E308"
+                        style="-fx-background-color: #090A0D;" />
 
                 <!-- BIOLOGICAL STATUS -->
                 <VBox alignment="CENTER"
-                      spacing="12.0"
-                      GridPane.columnIndex="1">
-
-                    <children>
-
-                        <Label text="BIOLOGICAL STATUS" />
-
-                        <VBox alignment="CENTER"
-                              spacing="8.0">
-
-                            <children>
-
-                                <Label fx:id="prideLabel"
-                                       text="PRIDE" />
-
-                                <Label fx:id="gluttonyLabel"
-                                       text="GLUTTONY" />
-
-                                <Label fx:id="slothLabel"
-                                       text="SLOTH" />
-
-                                <Label fx:id="wrathLabel"
-                                       text="WRATH" />
-
-                            </children>
-
-                        </VBox>
-
-                    </children>
-
-                </VBox>
-
-
-                <!-- ARTIFICIAL STATUS -->
-                <VBox alignment="CENTER"
-                      spacing="12.0"
-                      GridPane.columnIndex="1"
-                      GridPane.rowIndex="1">
-
-                    <children>
-
-                        <Label text="ARTIFICIAL STATUS" />
-
-                        <VBox alignment="CENTER"
-                              spacing="8.0">
-
-                            <children>
-
-                                <Label fx:id="temperatureLabel"
-                                       text="TEMPERATURE" />
-
-                                <Label fx:id="storageLabel"
-                                       text="STORAGE" />
-
-                                <Label fx:id="powerLabel"
-                                       text="POWER" />
-
-                                <Label fx:id="integrityLabel"
-                                       text="INTEGRITY" />
-
-                            </children>
-
-                        </VBox>
-
-                    </children>
-
-                </VBox>
-
-
-                <!-- STATUS -->
-                <VBox alignment="TOP_CENTER"
-                      spacing="10.0"
+                      spacing="18.0"
                       GridPane.columnIndex="2"
-                      GridPane.rowSpan="3">
+                      GridPane.rowIndex="0"
+                      styleClass="panel,stat-panel">
 
                     <padding>
-                        <Insets top="35.0"
-                                bottom="10.0"
-                                left="10.0"
-                                right="10.0" />
-                    </padding>
-
-                    <children>
-
-                        <Label text="STATUS" />
-
-                        <ScrollPane fx:id="statusScrollPane"
-                                    fitToWidth="true"
-                                    VBox.vgrow="ALWAYS">
-
-                            <content>
-
-                                <VBox fx:id="statusBox"
-                                      spacing="6.0" />
-
-                            </content>
-
-                        </ScrollPane>
-
-                    </children>
-
-                </VBox>
-
-
-                <!-- DIALOGUE -->
-                <VBox spacing="8.0"
-                      GridPane.columnSpan="2"
-                      GridPane.rowIndex="2">
-
-                    <padding>
-                        <Insets top="10.0"
-                                bottom="10.0"
+                        <Insets top="20.0"
+                                bottom="20.0"
                                 left="20.0"
                                 right="20.0" />
                     </padding>
 
                     <children>
 
-                        <Label text="DIALOGUE"
-                               alignment="CENTER"
-                               maxWidth="1.7976931348623157E308" />
+                        <Label text="BIOLOGICAL STATUS"
+                               styleClass="section-title" />
 
-                        <ScrollPane fx:id="dialogueScrollPane"
+                        <VBox alignment="CENTER"
+                              spacing="11.0"
+                              styleClass="stat-list">
+
+                            <children>
+
+                                <Label fx:id="prideLabel"
+                                       text="PRIDE"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                                <Label fx:id="gluttonyLabel"
+                                       text="GLUTTONY"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                                <Label fx:id="slothLabel"
+                                       text="SLOTH"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                                <Label fx:id="wrathLabel"
+                                       text="WRATH"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                            </children>
+
+                        </VBox>
+
+                    </children>
+
+                </VBox>
+
+                <!-- ARTIFICIAL STATUS -->
+                <VBox alignment="CENTER"
+                      spacing="18.0"
+                      GridPane.columnIndex="2"
+                      GridPane.rowIndex="1"
+                      styleClass="panel,stat-panel">
+
+                    <padding>
+                        <Insets top="20.0"
+                                bottom="20.0"
+                                left="20.0"
+                                right="20.0" />
+                    </padding>
+
+                    <children>
+
+                        <Label text="ARTIFICIAL STATUS"
+                               styleClass="section-title" />
+
+                        <VBox alignment="CENTER"
+                              spacing="11.0"
+                              styleClass="stat-list">
+
+                            <children>
+
+                                <Label fx:id="temperatureLabel"
+                                       text="TEMPERATURE"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                                <Label fx:id="storageLabel"
+                                       text="STORAGE"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                                <Label fx:id="powerLabel"
+                                       text="POWER"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                                <Label fx:id="integrityLabel"
+                                       text="INTEGRITY"
+                                       maxWidth="1.7976931348623157E308"
+                                       alignment="CENTER"
+                                       styleClass="stat-label" />
+
+                            </children>
+
+                        </VBox>
+
+                    </children>
+
+                </VBox>
+
+                <!-- STATUS -->
+                <VBox GridPane.columnIndex="3"
+                      GridPane.rowSpan="3"
+                      styleClass="panel,status-panel">
+
+                    <padding>
+                        <Insets top="10.0"
+                                bottom="10.0"
+                                left="10.0"
+                                right="10.0" />
+                    </padding>
+
+                    <children>
+
+                        <ScrollPane fx:id="statusScrollPane"
                                     fitToWidth="true"
-                                    fitToHeight="true"
-                                    styleClass="dialogue-scroll"
-                                    stylesheets="@style.css"
-                                    style="-fx-background: black; -fx-background-color: black;"
-                                    VBox.vgrow="ALWAYS">
+                                    VBox.vgrow="ALWAYS"
+                                    styleClass="terminal-scroll">
 
                             <content>
 
-                                <VBox fx:id="dialogueBox"
-                                      spacing="6.0"
-                                      style="-fx-background-color: black;" />
+                                <VBox fx:id="statusBox"
+                                      spacing="7.0"
+                                      styleClass="status-box" />
 
                             </content>
 
@@ -227,28 +257,60 @@
 
                 </VBox>
 
-
-                <!-- OPTIONS -->
-                <VBox spacing="8.0"
+                <!-- DIALOGUE -->
+                <VBox GridPane.columnIndex="0"
                       GridPane.columnSpan="3"
-                      GridPane.rowIndex="3">
+                      GridPane.rowIndex="2"
+                      styleClass="panel,dialogue-panel">
 
                     <padding>
-                        <Insets bottom="20.0"
+                        <Insets top="10.0"
+                                bottom="10.0"
                                 left="10.0"
                                 right="10.0" />
                     </padding>
 
                     <children>
 
-                        <Label text="OPTIONS"
-                               alignment="CENTER"
-                               maxWidth="1.7976931348623157E308" />
+                        <ScrollPane fx:id="dialogueScrollPane"
+                                    fitToWidth="true"
+                                    fitToHeight="true"
+                                    VBox.vgrow="ALWAYS"
+                                    styleClass="terminal-scroll,dialogue-scroll">
 
+                            <content>
 
-                        <!-- 8 EQUAL-WIDTH BUTTON SLOTS -->
-                        <GridPane hgap="6.0"
-                                  VBox.vgrow="ALWAYS">
+                                <VBox fx:id="dialogueBox"
+                                      spacing="9.0"
+                                      styleClass="dialogue-box" />
+
+                            </content>
+
+                        </ScrollPane>
+
+                    </children>
+
+                </VBox>
+
+                <!-- OPTIONS -->
+                <VBox GridPane.columnIndex="0"
+                      GridPane.columnSpan="4"
+                      GridPane.rowIndex="3"
+                      styleClass="panel,control-panel">
+
+                    <padding>
+                        <Insets top="8.0"
+                                bottom="8.0"
+                                left="8.0"
+                                right="8.0" />
+                    </padding>
+
+                    <children>
+
+                        <!-- BUTTONS MUST REMAIN DIRECT CHILDREN OF THIS GRIDPANE -->
+                        <GridPane hgap="7.0"
+                                  VBox.vgrow="ALWAYS"
+                                  styleClass="control-grid">
 
                             <columnConstraints>
 
@@ -263,13 +325,9 @@
 
                             </columnConstraints>
 
-
                             <rowConstraints>
-
                                 <RowConstraints percentHeight="100.0" />
-
                             </rowConstraints>
-
 
                             <children>
 
@@ -341,12 +399,11 @@
 
         </GridPane>
 
-
         <!-- RIVER / INTRO TRANSITION OVERLAY -->
         <StackPane fx:id="transitionPane"
                    visible="false"
                    opacity="0.0"
-                   style="-fx-background-color: black;"
+                   styleClass="overlay-pane"
                    AnchorPane.topAnchor="0.0"
                    AnchorPane.bottomAnchor="0.0"
                    AnchorPane.leftAnchor="0.0"
@@ -369,7 +426,6 @@
                                    preserveRatio="true"
                                    smooth="true" />
 
-
                         <Label fx:id="transitionTitle"
                                text="SESSION INITIALIZING"
                                textFill="WHITE"
@@ -378,7 +434,6 @@
                                textAlignment="CENTER"
                                maxWidth="900.0" />
 
-
                         <Label fx:id="transitionQuote"
                                text="Transition quote"
                                textFill="WHITE"
@@ -386,7 +441,6 @@
                                alignment="CENTER"
                                textAlignment="CENTER"
                                maxWidth="900.0" />
-
 
                         <Label fx:id="transitionFooter"
                                text="OBSERVE CAREFULLY"
@@ -404,12 +458,11 @@
 
         </StackPane>
 
-
         <!-- GAME OVER OVERLAY -->
         <StackPane fx:id="gameOverPane"
                    visible="false"
                    opacity="0.0"
-                   style="-fx-background-color: black;"
+                   styleClass="overlay-pane"
                    AnchorPane.topAnchor="0.0"
                    AnchorPane.bottomAnchor="0.0"
                    AnchorPane.leftAnchor="0.0"

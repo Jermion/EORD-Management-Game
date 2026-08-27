@@ -2,9 +2,12 @@ import enums.ArtificialCondition;
 import enums.ArtificialStat;
 import enums.BioCondition;
 import enums.Sin;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.ScrollPane;
@@ -15,6 +18,7 @@ import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.util.Duration;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -24,11 +28,16 @@ import javafx.scene.effect.GaussianBlur;
 import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 import java.nio.file.Files;
 
 import java.nio.file.Paths;
+import java.util.EnumMap;
 
 
 public class Controller {
@@ -36,7 +45,21 @@ public class Controller {
     private Creature creature;
     private EventManager eventManager;
     private long startTime;
+
     private boolean gameOverActive;
+    private EnumMap<Sin, PauseTransition> biologicalBadTimers = new EnumMap<>(Sin.class);
+    private EnumMap<ArtificialStat, PauseTransition> artificialBadTimers = new EnumMap<>(ArtificialStat.class);
+    private EnumMap<Sin, Timeline> biologicalBadFlashes = new EnumMap<>(Sin.class);
+    private EnumMap<ArtificialStat, Timeline> artificialBadFlashes = new EnumMap<>(ArtificialStat.class);
+
+    private PauseTransition ozlericRecoveryTimer;
+    private PauseTransition ozlericLiveEventTimer;
+    private boolean ozlericLiveEventActive;
+    private Timeline ozlericPopupVibration;
+
+    private Stage ozlericPopupStage;
+    private int ozlericClicksRemaining;
+
 
     private AudioClip panicBreathing;
     private AudioClip lightFlickerSoundEffect;
@@ -115,12 +138,19 @@ public class Controller {
     @FXML
     private Label gameOverText;
 
+    @FXML
+    private ImageView entityImageView;
+
 
     @FXML
     public void initialize() {
         creature = new Creature();
         startTime = System.currentTimeMillis();
+        entityImageView.setImage(new Image(Paths.get("images", "creatureDefaultGif.gif").toUri().toString()));
+
         gameOverActive = false;
+        ozlericLiveEventActive = false;
+
         eventManager = new EventManager(
                 creature,
                 // the 'this::' allows EventManager to use these methods
@@ -234,6 +264,19 @@ public class Controller {
         updateArtificialLabel(storageLabel, ArtificialStat.STORAGE);
         updateArtificialLabel(powerLabel, ArtificialStat.POWER);
         updateArtificialLabel(integrityLabel, ArtificialStat.INTEGRITY);
+
+        updateBiologicalBadTimer(prideLabel, Sin.PRIDE);
+        updateBiologicalBadTimer(gluttonyLabel, Sin.GLUTTONY);
+        updateBiologicalBadTimer(slothLabel, Sin.SLOTH);
+        updateBiologicalBadTimer(wrathLabel, Sin.WRATH);
+
+        updateArtificialBadTimer(temperatureLabel, ArtificialStat.TEMPERATURE);
+        updateArtificialBadTimer(storageLabel, ArtificialStat.STORAGE);
+        updateArtificialBadTimer(powerLabel, ArtificialStat.POWER);
+        updateArtificialBadTimer(integrityLabel, ArtificialStat.INTEGRITY);
+
+        updateOzlericRecoveryTimer();
+        updateOzlericLiveEventScheduler();
     }
 
     private void updateBiologicalLabel(Label label, Sin sin) {
@@ -255,6 +298,405 @@ public class Controller {
             case OK -> label.setTextFill(Color.GOLDENROD);
             case BAD -> label.setTextFill(Color.RED);
         }
+    }
+
+    private void updateOzlericRecoveryTimer() {
+        Sin ozlericSin = creature.getBiologicalSystem().getOzlericSin();
+
+        if (ozlericSin != null) {
+            BioCondition condition = creature.getBiologicalSystem().getCondition(ozlericSin);
+
+            if (condition != BioCondition.OZLERIC) {
+                if (ozlericRecoveryTimer == null) {
+                    ozlericRecoveryTimer = new PauseTransition(Duration.seconds(15));
+
+                    ozlericRecoveryTimer.setOnFinished(event -> {
+                        Sin currentOzlericSin = creature.getBiologicalSystem().getOzlericSin();
+
+                        if (currentOzlericSin != null && creature
+                                .getBiologicalSystem().getCondition(currentOzlericSin) != BioCondition.OZLERIC) {
+                            eventManager.triggerGameOver();
+                        }
+                    });
+
+                    ozlericRecoveryTimer.play();
+                }
+            } else {
+                if (ozlericRecoveryTimer != null) {
+                    ozlericRecoveryTimer.stop();
+                    ozlericRecoveryTimer = null;
+                }
+            }
+        } else {
+            if (ozlericRecoveryTimer != null) {
+                ozlericRecoveryTimer.stop();
+                ozlericRecoveryTimer = null;
+            }
+        }
+    }
+
+    private void updateOzlericLiveEventScheduler() {
+        Sin ozlericSin = creature.getBiologicalSystem().getOzlericSin();
+
+        boolean currentlyOzleric = false;
+
+        if (ozlericSin != null) {
+            currentlyOzleric = creature.getBiologicalSystem().getCondition(ozlericSin) == BioCondition.OZLERIC;
+        }
+
+        if (currentlyOzleric && !gameOverActive) {
+            if (ozlericLiveEventTimer == null && !ozlericLiveEventActive) {
+                scheduleNextOzlericLiveEvent();
+            }
+        } else {
+            if (ozlericLiveEventTimer != null) {
+                ozlericLiveEventTimer.stop();
+                ozlericLiveEventTimer = null;
+            }
+
+            if (ozlericLiveEventActive) {
+                if (ozlericPopupVibration != null) {
+                    ozlericPopupVibration.stop();
+                    ozlericPopupVibration = null;
+                }
+
+                if (ozlericPopupStage != null) {
+                    ozlericPopupStage.close();
+                    ozlericPopupStage = null;
+                }
+
+                ozlericLiveEventActive = false;
+            }
+        }
+    }
+
+    private void scheduleNextOzlericLiveEvent() {
+        double waitTime = 8 + Math.random() * 4;
+
+        ozlericLiveEventTimer = new PauseTransition(
+                Duration.seconds(waitTime)
+        );
+
+        ozlericLiveEventTimer.setOnFinished(event -> {
+            ozlericLiveEventTimer = null;
+
+            Sin ozlericSin = creature.getBiologicalSystem().getOzlericSin();
+
+            if (!gameOverActive && !ozlericLiveEventActive &&
+                    ozlericSin != null && creature.getBiologicalSystem().getCondition(ozlericSin) == BioCondition.OZLERIC) {
+                double eventChance = Math.random();
+
+                if (eventChance < 1.0) {
+                    startOzlericSmileyEvent();
+                } else {
+                    scheduleNextOzlericLiveEvent();
+                }
+            }
+        });
+
+        ozlericLiveEventTimer.play();
+    }
+
+    private void startOzlericSmileyEvent() {
+        Sin ozlericSin = creature.getBiologicalSystem().getOzlericSin();
+
+        if (ozlericSin != null && creature.getBiologicalSystem().getCondition(ozlericSin) == BioCondition.OZLERIC) {
+            ozlericLiveEventActive = true;
+
+            int ozlericValue = creature.getBiologicalSystem().getSinValue(ozlericSin);
+
+            ozlericClicksRemaining = ozlericValue / 10;
+
+            Label popupText = new Label(
+                    "[ " + ozlericSin + " is all I have left. ]"
+            );
+
+            popupText.setTextFill(Color.web("#D9DCE1"));
+            popupText.setStyle(
+                    "-fx-font-family: 'Consolas';" +
+                            "-fx-font-size: 15px;" +
+                            "-fx-font-weight: bold;"
+            );
+
+            ImageView smileyImage = new ImageView(
+                    new Image(Paths.get("images", "ozlericSmiley.png").toUri().toString())
+            );
+
+            smileyImage.setFitWidth(175);
+            smileyImage.setFitHeight(175);
+            smileyImage.setPreserveRatio(true);
+
+            VBox popupRoot = new VBox(15, smileyImage, popupText);
+
+            popupRoot.setAlignment(Pos.CENTER);
+            popupRoot.setStyle(
+                    "-fx-background-color: #101217;" +
+                            "-fx-border-color: #464B54;" +
+                            "-fx-border-width: 1;" +
+                            "-fx-padding: 20;"
+            );
+
+            Scene popupScene = new Scene(
+                    popupRoot,
+                    320,
+                    280
+            );
+
+            ozlericPopupStage = new Stage();
+            ozlericPopupStage.initOwner(
+                    transitionPane.getScene().getWindow()
+            );
+
+            ozlericPopupStage.initModality(Modality.WINDOW_MODAL);
+            ozlericPopupStage.initStyle(StageStyle.UNDECORATED);
+            ozlericPopupStage.setAlwaysOnTop(true);
+
+            ozlericPopupStage.setOnCloseRequest(event -> {
+                event.consume();
+            });
+
+            ozlericPopupStage.setScene(popupScene);
+
+            popupRoot.setOnMouseClicked(event -> {
+                ozlericClicksRemaining--;
+
+                if (ozlericClicksRemaining <= 0) {
+                    finishOzlericLiveEvent();
+                }
+            });
+
+            ozlericPopupStage.show();
+
+            double ownerX = transitionPane.getScene().getWindow().getX();
+            double ownerY = transitionPane.getScene().getWindow().getY();
+
+            double ownerWidth = transitionPane.getScene().getWindow().getWidth();
+            double ownerHeight = transitionPane.getScene().getWindow().getHeight();
+
+            double randomX = Math.random() * 160 - 80;
+            double randomY = Math.random() * 100 - 50;
+
+            double popupX = ownerX + (ownerWidth - ozlericPopupStage.getWidth()) / 2 + randomX;
+            double popupY = ownerY + (ownerHeight - ozlericPopupStage.getHeight()) / 2 + randomY;
+
+            ozlericPopupStage.setX(popupX);
+            ozlericPopupStage.setY(popupY);
+
+            double originalX = ozlericPopupStage.getX();
+            double originalY = ozlericPopupStage.getY();
+
+            ozlericPopupVibration = new Timeline(
+                    new KeyFrame(
+                            Duration.millis(40),
+                            event -> {
+                                double xOffset = Math.random() * 8 - 4;
+                                double yOffset = Math.random() * 8 - 4;
+
+                                ozlericPopupStage.setX(originalX + xOffset);
+                                ozlericPopupStage.setY(originalY + yOffset);
+                            }
+                    )
+            );
+
+            ozlericPopupVibration.setCycleCount(Timeline.INDEFINITE);
+            ozlericPopupVibration.play();
+        }
+    }
+
+    private void finishOzlericLiveEvent() {
+        if (ozlericPopupVibration != null) {
+            ozlericPopupVibration.stop();
+            ozlericPopupVibration = null;
+        }
+
+        if (ozlericPopupStage != null) {
+            ozlericPopupStage.close();
+            ozlericPopupStage = null;
+        }
+
+
+        ozlericLiveEventActive = false;
+
+        updateOzlericLiveEventScheduler();
+    }
+
+    private void updateBiologicalBadTimer(Label label, Sin sin) {
+        BioCondition condition = creature.getBiologicalSystem().getCondition(sin);
+
+        if (condition == BioCondition.BAD) {
+            if (!biologicalBadTimers.containsKey(sin)) {
+                PauseTransition badTimer = new PauseTransition(Duration.seconds(15));
+
+                badTimer.setOnFinished(event -> {
+                    if (creature.getBiologicalSystem().getCondition(sin) == BioCondition.BAD) {
+                        eventManager.triggerGameOver();
+                    }
+                });
+
+                biologicalBadTimers.put(sin, badTimer);
+                badTimer.play();
+            }
+
+            if (!biologicalBadFlashes.containsKey(sin)) {
+                Timeline flash = createBadFlash(label);
+
+                biologicalBadFlashes.put(sin, flash);
+                flash.play();
+            }
+        } else {
+            if (biologicalBadTimers.containsKey(sin)) {
+                biologicalBadTimers.get(sin).stop();
+                biologicalBadTimers.remove(sin);
+            }
+
+            if (biologicalBadFlashes.containsKey(sin)) {
+                biologicalBadFlashes.get(sin).stop();
+                biologicalBadFlashes.remove(sin);
+
+                updateBiologicalLabel(label, sin);
+            }
+        }
+
+    }
+
+    private void updateArtificialBadTimer(Label label, ArtificialStat stat) {
+        ArtificialCondition condition = creature.getArtificialSystem().getCondition(stat);
+
+        if (condition == ArtificialCondition.BAD) {
+            if (!artificialBadTimers.containsKey(stat)) {
+                PauseTransition badTimer = new PauseTransition(Duration.seconds(15));
+
+                badTimer.setOnFinished(event -> {
+                    if (creature.getArtificialSystem().getCondition(stat) == ArtificialCondition.BAD) {
+                        eventManager.triggerGameOver();
+                    }
+                });
+
+                artificialBadTimers.put(stat, badTimer);
+                badTimer.play();
+            }
+
+            if (!artificialBadFlashes.containsKey(stat)) {
+                Timeline flash = createBadFlash(label);
+
+                artificialBadFlashes.put(stat, flash);
+                flash.play();
+            }
+        } else {
+            if (artificialBadTimers.containsKey(stat)) {
+                artificialBadTimers.get(stat).stop();
+                artificialBadTimers.remove(stat);
+
+                updateArtificialLabel(label, stat);
+            }
+
+            if (artificialBadFlashes.containsKey(stat)) {
+                artificialBadFlashes.get(stat).stop();
+                artificialBadFlashes.remove(stat);
+
+                updateArtificialLabel(label, stat);
+            }
+        }
+    }
+
+    private Timeline createBadFlash(Label label) {
+        Timeline flash = new Timeline(
+                new KeyFrame(
+                        Duration.ZERO,
+                        event -> label.setTextFill(Color.RED)
+                ),
+
+                new KeyFrame(
+                        Duration.seconds(0.45),
+                        event -> label.setTextFill(Color.LIGHTGRAY)
+                ),
+
+                new KeyFrame(
+                        Duration.seconds(0.9),
+                        event -> label.setTextFill(Color.RED)
+                )
+        );
+
+        flash.setCycleCount(Timeline.INDEFINITE);
+
+        return flash;
+    }
+
+    private void stopBadWarnings() {
+        for (PauseTransition timer : biologicalBadTimers.values()) {
+            timer.stop();
+        }
+
+        for (PauseTransition timer : artificialBadTimers.values()) {
+            timer.stop();
+        }
+
+        for (Timeline flash : biologicalBadFlashes.values()) {
+            flash.stop();
+        }
+
+        for (Timeline flash : artificialBadFlashes.values()) {
+            flash.stop();
+        }
+
+        biologicalBadTimers.clear();
+        artificialBadTimers.clear();
+
+        biologicalBadFlashes.clear();
+        artificialBadFlashes.clear();
+
+        if (ozlericRecoveryTimer != null) {
+            ozlericRecoveryTimer.stop();
+            ozlericRecoveryTimer = null;
+        }
+
+        if (ozlericLiveEventTimer != null) {
+            ozlericLiveEventTimer.stop();
+            ozlericLiveEventTimer = null;
+        }
+
+        if (ozlericPopupVibration != null) {
+            ozlericPopupVibration.stop();
+            ozlericPopupVibration = null;
+        }
+
+        if (ozlericPopupStage != null) {
+            ozlericPopupStage.close();
+            ozlericPopupStage = null;
+        }
+
+        ozlericLiveEventActive = false;
+    }
+
+    private void startControlCooldown(ActionEvent event) {
+        Button usedButton = (Button) event.getSource();
+        GridPane buttonGrid = (GridPane) usedButton.getParent();
+
+        usedButton.setDisable(true);
+        buttonGrid.setDisable(true);
+
+        PauseTransition globalCooldown = new PauseTransition(
+                Duration.seconds(1.5)
+        );
+
+        globalCooldown.setOnFinished(cooldownEvent -> {
+            if (!gameOverActive) {
+                buttonGrid.setDisable(false);
+            }
+        });
+
+        PauseTransition individualCooldown = new PauseTransition(
+                Duration.seconds(3)
+        );
+
+        individualCooldown.setOnFinished(cooldownEvent -> {
+            if (!gameOverActive) {
+                usedButton.setDisable(false);
+            }
+        });
+
+        globalCooldown.play();
+        individualCooldown.play();
     }
 
     private void addDialogue(String message) {
@@ -282,7 +724,7 @@ public class Controller {
     }
 
     @FXML
-    private void suppress() {
+    private void suppress(ActionEvent event) {
         creature.getBiologicalSystem().changeSin(Sin.WRATH, -15);
         creature.getBiologicalSystem().changeSin(Sin.SLOTH, 10);
 
@@ -293,10 +735,12 @@ public class Controller {
                 "   [SLOTH HAS INCREASED.]");
 
         eventManager.suppressUsed();
+
+        startControlCooldown(event);
     }
 
     @FXML
-    private void coolant() {
+    private void coolant(ActionEvent event) {
         creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, -15);
         creature.getArtificialSystem().changeStat(ArtificialStat.POWER, -10);
 
@@ -307,10 +751,12 @@ public class Controller {
                 "   [POWER HAS DECREASED.]");
 
         eventManager.coolantUsed();
+
+        startControlCooldown(event);
     }
 
     @FXML
-    private void stimulate() {
+    private void stimulate(ActionEvent event) {
         creature.getBiologicalSystem().changeSin(Sin.SLOTH, -15);
         creature.getArtificialSystem().changeStat(ArtificialStat.TEMPERATURE, 10);
 
@@ -322,10 +768,12 @@ public class Controller {
 
         eventManager.stimulateUsed();
 
+        startControlCooldown(event);
+
     }
 
     @FXML
-    private void charge() {
+    private void charge(ActionEvent event) {
         creature.getArtificialSystem().changeStat(ArtificialStat.POWER, 15);
         creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, 10);
 
@@ -337,10 +785,12 @@ public class Controller {
 
         eventManager.chargeUsed();
 
+        startControlCooldown(event);
+
     }
 
     @FXML
-    private void repair() {
+    private void repair(ActionEvent event) {
         creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, 15);
         creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, -10);
 
@@ -351,10 +801,12 @@ public class Controller {
                 "   [GLUTTONY HAS DECREASED.]");
 
         eventManager.repairUsed();
+
+        startControlCooldown(event);
     }
 
     @FXML
-    private void nourish() {
+    private void nourish(ActionEvent event) {
         creature.getBiologicalSystem().changeSin(Sin.GLUTTONY, 15);
         creature.getBiologicalSystem().changeSin(Sin.PRIDE, 10);
 
@@ -366,10 +818,12 @@ public class Controller {
 
 
         eventManager.nourishUsed();
+
+        startControlCooldown(event);
     }
 
     @FXML
-    private void restrain() {
+    private void restrain(ActionEvent event) {
         creature.getBiologicalSystem().changeSin(Sin.PRIDE, -15);
         creature.getBiologicalSystem().changeSin(Sin.WRATH, 10);
 
@@ -380,10 +834,12 @@ public class Controller {
                 "   [WRATH HAS INCREASED.]");
 
         eventManager.restrainUsed();
+
+        startControlCooldown(event);
     }
 
     @FXML
-    private void purge() {
+    private void purge(ActionEvent event) {
         creature.getArtificialSystem().changeStat(ArtificialStat.STORAGE, -15);
         creature.getArtificialSystem().changeStat(ArtificialStat.INTEGRITY, -10);
 
@@ -394,6 +850,8 @@ public class Controller {
                 "   [INTEGRITY HAS DECREASED.]");
 
         eventManager.purgeUsed();
+
+        startControlCooldown(event);
     }
 
     private void startIntroSequence() {
@@ -595,6 +1053,7 @@ public class Controller {
     private void startGameOverSequence() {
         if (!gameOverActive) {
             gameOverActive = true;
+            stopBadWarnings();
 
             if (panicBreathing.isPlaying()) {
                 panicBreathing.stop();

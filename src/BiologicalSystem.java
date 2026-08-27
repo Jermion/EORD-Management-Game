@@ -6,13 +6,15 @@ public class BiologicalSystem {
     private int gluttony;
     private int sloth;
     private int wrath;
+    private Sin ozlericSin;
 
     // 50 Will be the starting value for all sins
     public BiologicalSystem() {
-        pride = 50;
+        pride = 120;
         gluttony = 50;
         sloth = 50;
         wrath = 50;
+        ozlericSin = null;
     }
 
     public int getPride() {
@@ -32,20 +34,33 @@ public class BiologicalSystem {
     }
 
     public void changeSin(Sin sin, int amount) {
+        int newValue = getSinValue(sin) + amount;
+
+        if (ozlericSin != null && ozlericSin != sin) {
+            newValue = Math.max(0, Math.min(100, newValue));
+        } else {
+            newValue = clamp(newValue);
+        }
+
+        if (ozlericSin == null && newValue > 100) {
+            ozlericSin = sin;
+        }
+
         switch (sin) {
-            case PRIDE -> pride += amount;
-            case GLUTTONY -> gluttony += amount;
-            case WRATH -> wrath += amount;
-            case SLOTH -> sloth += amount;
+            case PRIDE -> pride = newValue;
+            case GLUTTONY -> gluttony = newValue;
+            case WRATH -> wrath = newValue;
+            case SLOTH -> sloth = newValue;
 
         }
     }
+
 
     private int clamp(int value) {
         return Math.max(0, Math.min(120, value));
     }
 
-    private int getSinValue(Sin sin) {
+    public int getSinValue(Sin sin) {
         return switch (sin) {
             case PRIDE -> pride;
             case GLUTTONY -> gluttony;
@@ -71,5 +86,9 @@ public class BiologicalSystem {
         } else {
             return BioCondition.BAD;
         }
+    }
+
+    public Sin getOzlericSin() {
+        return ozlericSin;
     }
 }

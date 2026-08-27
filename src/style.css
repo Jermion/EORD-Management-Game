@@ -1,31 +1,260 @@
-.dialogue-scroll {
+/* =========================================================
+   ROOT
+   ========================================================= */
+
+.app-root {
+    -fx-background-color: #090A0D;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+}
+
+.main-grid {
+    -fx-background-color: #090A0D;
+}
+
+
+/* =========================================================
+   BASE PANELS
+   ========================================================= */
+
+.panel {
+    -fx-background-color: #101217;
+
+    -fx-border-color: #2A2E35;
+    -fx-border-width: 1px;
+
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+}
+
+/* =========================================================
+   ENTITY / IMAGE DISPLAY
+   ========================================================= */
+
+.entity-panel {
+    -fx-background-color: #0C0E12;
+}
+
+.placeholder-label {
+    -fx-text-fill: #4C515A;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 2px;
+}
+
+
+/* =========================================================
+   BIOLOGICAL / ARTIFICIAL PANELS
+   ========================================================= */
+
+.stat-panel {
+    -fx-background-color: #111318;
+}
+
+.section-title {
+    -fx-text-fill: #8E949D;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.stat-list {
+    -fx-fill-width: true;
+}
+
+.stat-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+
+    -fx-padding: 7px 10px;
+
+    -fx-background-color: #0C0E12;
+
+    -fx-border-color: #23272E;
+    -fx-border-width: 1px;
+
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.status-panel {
+    -fx-background-color: #0D0F13;
+}
+
+.status-box {
+    -fx-background-color: #0D0F13;
+    -fx-padding: 8px 10px 14px 10px;
+}
+
+.status-box .label {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 12px;
+
+}
+
+
+/* =========================================================
+   DIALOGUE
+   ========================================================= */
+
+.dialogue-panel {
+    -fx-background-color: #0B0D10;
+}
+
+.dialogue-box {
+    -fx-background-color: #0B0D10;
+    -fx-padding: 10px 12px 14px 12px;
+}
+
+.dialogue-box .label {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+}
+
+
+/* =========================================================
+   SCROLLPANES
+   ========================================================= */
+
+.terminal-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0px;
+}
+
+.terminal-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.terminal-scroll .corner {
+    -fx-background-color: #0D0F13;
+}
+
+
+/* Vertical scrollbar */
+
+.terminal-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 9px;
+}
+
+.terminal-scroll .scroll-bar:vertical .track {
+    -fx-background-color: #0A0C0F;
+    -fx-background-radius: 0px;
+}
+
+.terminal-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #3B4049;
+    -fx-background-radius: 2px;
+}
+
+.terminal-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #555B66;
+}
+
+.terminal-scroll .scroll-bar:vertical .increment-button,
+.terminal-scroll .scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0px;
+}
+
+.terminal-scroll .scroll-bar:vertical .increment-arrow,
+.terminal-scroll .scroll-bar:vertical .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 0px;
+}
+
+
+/* Horizontal scrollbar */
+
+.terminal-scroll .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 9px;
+}
+
+.terminal-scroll .scroll-bar:horizontal .track {
+    -fx-background-color: #0A0C0F;
+}
+
+.terminal-scroll .scroll-bar:horizontal .thumb {
+    -fx-background-color: #3B4049;
+    -fx-background-radius: 2px;
+}
+
+.terminal-scroll .scroll-bar:horizontal .increment-button,
+.terminal-scroll .scroll-bar:horizontal .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0px;
+}
+
+.terminal-scroll .scroll-bar:horizontal .increment-arrow,
+.terminal-scroll .scroll-bar:horizontal .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 0px;
+}
+
+
+/* =========================================================
+   CONTROL PANEL / BUTTONS
+   ========================================================= */
+
+.control-panel {
+    -fx-background-color: #0E1014;
+}
+
+.control-grid {
+    -fx-background-color: transparent;
+}
+
+.button {
+    -fx-background-color: #171A20;
+
+    -fx-text-fill: #D5D8DE;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+
+    -fx-border-color: #383D46;
+    -fx-border-width: 1px;
+
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+
+    -fx-cursor: hand;
+
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.button:hover {
+    -fx-background-color: #21191C;
+    -fx-border-color: #74313B;
+    -fx-text-fill: #FFFFFF;
+}
+
+.button:pressed {
+    -fx-background-color: #36191E;
+    -fx-border-color: #9A3948;
+}
+
+.button:focused {
+    -fx-border-color: #4A505A;
+}
+
+.button:disabled {
+    -fx-opacity: 0.35;
+    -fx-cursor: default;
+}
+
+
+/* =========================================================
+   TRANSITION / GAME OVER
+   ========================================================= */
+
+.overlay-pane {
     -fx-background-color: black;
-    -fx-background: black;
-}
-
-.dialogue-scroll > .viewport {
-    -fx-background-color: black;
-}
-
-.dialogue-scroll .scroll-bar:vertical {
-    -fx-background-color: black;
-}
-
-.dialogue-scroll .scroll-bar:vertical .track {
-    -fx-background-color: black;
-}
-
-.dialogue-scroll .scroll-bar:vertical .thumb {
-    -fx-background-color: #444444;
-    -fx-background-radius: 4px;
-}
-
-.dialogue-scroll .scroll-bar:vertical .increment-button,
-.dialogue-scroll .scroll-bar:vertical .decrement-button {
-    -fx-background-color: black;
-}
-
-.dialogue-scroll .scroll-bar:vertical .increment-arrow,
-.dialogue-scroll .scroll-bar:vertical .decrement-arrow {
-    -fx-background-color: #777777;
 }

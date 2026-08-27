@@ -409,11 +409,11 @@ public class EventManager {
     private void completeEvent() {
         riverProgress++;
 
-        if (currentRiver == River.RIVER_I && riverProgress >= 2) {
+        if (currentRiver == River.RIVER_I && riverProgress >= 10) {
             riverProgress = 0;
 
             requestRiverTransition(River.RIVER_II);
-        } else if (currentRiver == River.RIVER_II && riverProgress >= 2) {
+        } else if (currentRiver == River.RIVER_II && riverProgress >= 12) {
             riverProgress = 0;
 
             requestRiverTransition(River.RIVER_III);
