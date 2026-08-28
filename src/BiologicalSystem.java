@@ -10,7 +10,7 @@ public class BiologicalSystem {
 
     // 50 Will be the starting value for all sins
     public BiologicalSystem() {
-        pride = 120;
+        pride = 50;
         gluttony = 50;
         sloth = 50;
         wrath = 50;

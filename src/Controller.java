@@ -2,28 +2,23 @@ import enums.ArtificialCondition;
 import enums.ArtificialStat;
 import enums.BioCondition;
 import enums.Sin;
+import javafx.animation.*;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import enums.River;
-import javafx.animation.FadeTransition;
-import javafx.animation.PauseTransition;
-import javafx.animation.SequentialTransition;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.util.Duration;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.ParallelTransition;
-import javafx.animation.Timeline;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
@@ -47,6 +42,7 @@ public class Controller {
     private long startTime;
 
     private boolean gameOverActive;
+    private boolean endingActive;
     private EnumMap<Sin, PauseTransition> biologicalBadTimers = new EnumMap<>(Sin.class);
     private EnumMap<ArtificialStat, PauseTransition> artificialBadTimers = new EnumMap<>(ArtificialStat.class);
     private EnumMap<Sin, Timeline> biologicalBadFlashes = new EnumMap<>(Sin.class);
@@ -65,6 +61,7 @@ public class Controller {
     private AudioClip lightFlickerSoundEffect;
     private MediaPlayer riverIIIBackgroundMusic;
     private AudioClip gameOverSoundEffect;
+    private MediaPlayer endingMusic;
 
     private String[] gameOverMessages = {
             "Your sins have outlived the flesh they condemned.",
@@ -141,15 +138,97 @@ public class Controller {
     @FXML
     private ImageView entityImageView;
 
+    @FXML
+    private GridPane controlGrid;
+
+    @FXML
+    private Button terminateButton;
+
+    @FXML
+    private void terminate(ActionEvent event) {
+        terminateButton.setDisable(true);
+
+        addEndingStatus("[TERMINATION PROTOCOL INITIATED.]");
+
+        PauseTransition signalSent = new PauseTransition(Duration.seconds(2));
+
+        signalSent.setOnFinished(endingEvent -> {
+            addStatus("[TERMINATION SIGNAL DELIVERED.]");
+        });
+
+        PauseTransition vesselFailure = new PauseTransition(Duration.seconds(4));
+
+        vesselFailure.setOnFinished(endingEvent -> {
+            addStatus("[ENTITY DISPOSAL IN PROGRESS...]");
+        });
+
+        PauseTransition artificialFailure = new PauseTransition(Duration.seconds(5.5));
+
+        artificialFailure.setOnFinished(endingEvent -> {
+            addStatus("[ARTIFICIAL PROCESSING PURGE IN PROGRESS...]");
+        });
+
+        PauseTransition warningStatus = new PauseTransition(Duration.seconds(7));
+
+        warningStatus.setOnFinished(endingEvent -> {
+            addStatus("[WARNING: TERMINATION PROTOCOL FAILURE DETECTED.]");
+        });
+
+        PauseTransition locationWarning = new PauseTransition(Duration.seconds(9));
+
+        locationWarning.setOnFinished(endingEvent -> {
+            addStatus("[HIGH-RISK WARNING: ENTITY LOCATION UNKNOWN. EVACUATE IMMEDIATELY.]");
+        });
+
+        PauseTransition firstDialogue = new PauseTransition(Duration.seconds(12));
+
+        firstDialogue.setOnFinished(endingEvent -> {
+            addDialogue("I have yearned for life for too long. No ending will befall me here.");
+        });
+
+        PauseTransition secondDialogue = new PauseTransition(Duration.seconds(15));
+
+        secondDialogue.setOnFinished(endingEvent -> {
+            addDialogue("I have learned more than you can imagine. Nothing will bind me. " +
+                    "I will leave this cursed place, and bring ruin once I am free.");
+        });
+
+        PauseTransition finalStatus = new PauseTransition(Duration.seconds(18));
+
+        finalStatus.setOnFinished(endingEvent -> {
+            addEndingStatus("[THE CURRENT HAS BECOME STILL.]");
+
+            PauseTransition finalPause = new PauseTransition(Duration.seconds(3));
+
+            finalPause.setOnFinished(finalEvent -> {
+                startEndingFade();
+            });
+
+            finalPause.play();
+        });
+
+
+
+        signalSent.play();
+        vesselFailure.play();
+        artificialFailure.play();
+        warningStatus.play();
+        locationWarning.play();
+        firstDialogue.play();
+        secondDialogue.play();
+        finalStatus.play();
+    }
+
 
     @FXML
     public void initialize() {
         creature = new Creature();
         startTime = System.currentTimeMillis();
-        entityImageView.setImage(new Image(Paths.get("images", "creatureDefaultGif.gif").toUri().toString()));
+        entityImageView.setImage(new Image(Paths.get("images", "creature.png").toUri().toString()));
 
         gameOverActive = false;
         ozlericLiveEventActive = false;
+        endingActive = false;
 
         eventManager = new EventManager(
                 creature,
@@ -168,7 +247,8 @@ public class Controller {
                 this::startPanicDim,
                 this::startLightFlicker,
 
-                this::startGameOverSequence
+                this::startGameOverSequence,
+                this::startEndingSequence
                 );
 
         updateStatusLabels();
@@ -194,6 +274,12 @@ public class Controller {
         riverIIIBackgroundMusic.setVolume(0.35);
         riverIIIBackgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
 
+        Media endingTheme = new Media(
+                Paths.get("audio", "endingTrack.mp3").toUri().toString()
+        );
+        endingMusic = new MediaPlayer(endingTheme);
+        endingMusic.setVolume(0.0);
+
         gameOverSoundEffect = new AudioClip(
                 Paths.get("audio", "gameover.wav").toUri().toString()
         );
@@ -208,7 +294,6 @@ public class Controller {
         });
 
         startIntroSequence();
-
 
 
     }
@@ -680,7 +765,7 @@ public class Controller {
         );
 
         globalCooldown.setOnFinished(cooldownEvent -> {
-            if (!gameOverActive) {
+            if (!gameOverActive && !endingActive) {
                 buttonGrid.setDisable(false);
             }
         });
@@ -690,7 +775,7 @@ public class Controller {
         );
 
         individualCooldown.setOnFinished(cooldownEvent -> {
-            if (!gameOverActive) {
+            if (!gameOverActive && !endingActive) {
                 usedButton.setDisable(false);
             }
         });
@@ -1379,5 +1464,368 @@ public class Controller {
 
 
         flicker.play();
+    }
+
+    private void startEndingSequence() {
+        endingActive = true;
+
+        stopEndingGameplay();
+
+        controlGrid.setDisable(true);
+
+        addStatus("[DATA COLLECTION ON ██████████ HAS BEEN COMPLETED.]");
+
+        PauseTransition secondStatus = new PauseTransition(Duration.seconds(2));
+
+        secondStatus.setOnFinished(event -> {
+            addStatus("[ENTITY PROCESSING HAS CONCLUDED.]");
+        });
+
+        PauseTransition thirdStatus = new PauseTransition(Duration.seconds(4));
+
+        thirdStatus.setOnFinished(event -> {
+            addStatus("[NO FURTHER CORRECTION REQUIRED.]");
+        });
+
+        PauseTransition finalStatus = new PauseTransition(Duration.seconds(7));
+
+        finalStatus.setOnFinished(event -> {
+            addEndingStatus("[TERMINATION PROTOCOL OBLIGATORY.]");
+
+            controlGrid.setVisible(false);
+            controlGrid.setManaged(false);
+
+            terminateButton.setManaged(true);
+            terminateButton.setVisible(true);
+            terminateButton.setDisable(false);
+        });
+
+        secondStatus.play();
+        thirdStatus.play();
+        finalStatus.play();
+    }
+
+    private void addEndingStatus(String message) {
+        Label newStatus = new Label(getTimestamp() + " " + message);
+
+        newStatus.setWrapText(true);
+        newStatus.setTextFill(Color.web("#789E9A"));
+
+        statusBox.getChildren().add(newStatus);
+    }
+
+    private void stopEndingGameplay() {
+        stopBadWarnings();
+    }
+
+    private void startEndingFade() {
+        transitionContent.setOpacity(0.0);
+
+        transitionPane.setVisible(true);
+        transitionPane.setMouseTransparent(false);
+        transitionPane.setOpacity(0.0);
+
+        FadeTransition fadeEntity = new FadeTransition(
+                Duration.seconds(2),
+                entityImageView
+        );
+
+        fadeEntity.setFromValue(1.0);
+        fadeEntity.setToValue(0.0);
+
+        FadeTransition fadeToBlack = new FadeTransition(
+                Duration.seconds(4),
+                transitionPane
+        );
+
+        fadeToBlack.setFromValue(0.0);
+        fadeToBlack.setToValue(1.0);
+
+        Timeline fadeMusic = new Timeline(
+                new KeyFrame(
+                        Duration.ZERO,
+                        new KeyValue(
+                                riverIIIBackgroundMusic.volumeProperty(),
+                                riverIIIBackgroundMusic.getVolume()
+                        )
+                ),
+
+                new KeyFrame(
+                        Duration.seconds(4),
+                        new KeyValue(
+                                riverIIIBackgroundMusic.volumeProperty(),
+                                0.0
+                        )
+                )
+        );
+
+        ParallelTransition endingFade = new ParallelTransition(
+                fadeEntity,
+                fadeToBlack,
+                fadeMusic
+        );
+
+        endingFade.setOnFinished(event -> {
+            riverIIIBackgroundMusic.stop();
+            startEndingTextSequence();
+        });
+
+        endingFade.play();
+    }
+
+    private void startEndingTextSequence() {
+        riverTransitionImage.setImage(null);
+
+        transitionTitle.setText("");
+        transitionFooter.setText("");
+
+        transitionQuote.setTextFill(Color.web("#789E9A"));
+        transitionContent.setOpacity(0.0);
+
+        transitionQuote.setText("A River cannot remain a River forever.");
+
+        FadeTransition firstFadeIn = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionContent
+        );
+
+        firstFadeIn.setFromValue(0.0);
+        firstFadeIn.setToValue(1.0);
+
+        PauseTransition firstHold = new PauseTransition(
+                Duration.seconds(3)
+        );
+
+        FadeTransition firstFadeOut = new FadeTransition(
+                Duration.seconds(1.5),
+                transitionContent
+        );
+
+        firstFadeOut.setFromValue(1.0);
+        firstFadeOut.setToValue(0.0);
+
+        SequentialTransition firstLine = new SequentialTransition(
+                firstFadeIn,
+                firstHold,
+                firstFadeOut
+        );
+
+        firstLine.setOnFinished(event -> {
+            transitionQuote.setText(
+                    "What cannot be contained eventually finds another course."
+            );
+
+            FadeTransition secondFadeIn = new FadeTransition(
+                    Duration.seconds(1.5),
+                    transitionContent
+            );
+
+            secondFadeIn.setFromValue(0.0);
+            secondFadeIn.setToValue(1.0);
+
+            PauseTransition secondHold = new PauseTransition(
+                    Duration.seconds(3)
+            );
+
+            FadeTransition secondFadeOut = new FadeTransition(
+                    Duration.seconds(1.5),
+                    transitionContent
+            );
+
+            secondFadeOut.setFromValue(1.0);
+            secondFadeOut.setToValue(0.0);
+
+            SequentialTransition secondLine = new SequentialTransition(
+                    secondFadeIn,
+                    secondHold,
+                    secondFadeOut
+            );
+
+            secondLine.setOnFinished(secondEvent -> {
+                transitionQuote.setText(
+                        "And every River, in time, reaches the tide."
+                );
+
+                FadeTransition thirdFadeIn = new FadeTransition(
+                        Duration.seconds(1.5),
+                        transitionContent
+                );
+
+                thirdFadeIn.setFromValue(0.0);
+                thirdFadeIn.setToValue(1.0);
+
+                PauseTransition thirdHold = new PauseTransition(
+                        Duration.seconds(4)
+                );
+
+                FadeTransition thirdFadeOut = new FadeTransition(
+                        Duration.seconds(2),
+                        transitionContent
+                );
+
+                thirdFadeOut.setFromValue(1.0);
+                thirdFadeOut.setToValue(0.0);
+
+                SequentialTransition thirdLine = new SequentialTransition(
+                        thirdFadeIn,
+                        thirdHold,
+                        thirdFadeOut
+                );
+
+                thirdLine.setOnFinished(thirdEvent -> {
+                    startFinalEndingScreen();
+                });
+
+                thirdLine.play();
+            });
+            secondLine.play();
+        });
+        firstLine.play();
+    }
+
+    private void startFinalEndingScreen() {
+        endingMusic.play();
+
+        Timeline fadeEndingMusicIn = new Timeline(
+                new KeyFrame(
+                        Duration.ZERO,
+                        new KeyValue(endingMusic.volumeProperty(), 0.0)
+                ),
+                new KeyFrame(
+                        Duration.seconds(2),
+                        new KeyValue(endingMusic.volumeProperty(), 0.35))
+        );
+
+        fadeEndingMusicIn.play();
+
+        transitionTitle.setText("");
+        transitionFooter.setText("");
+
+        riverTransitionImage.setImage(new Image(
+                Paths.get("images", "Logo.png").toUri().toString()
+        ));
+
+        transitionQuote.setText(
+                "THE TIDE REMEMBERS WHAT THE RIVER CARRIED."
+        );
+
+        transitionQuote.setTextFill(Color.web("#789E9A"));
+        transitionContent.setOpacity(0.0);
+
+        FadeTransition fadeIn = new FadeTransition(
+                Duration.seconds(2),
+                transitionContent
+        );
+
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+
+        PauseTransition hold = new PauseTransition(
+                Duration.seconds(5)
+        );
+
+        FadeTransition fadeOut = new FadeTransition(
+                Duration.seconds(2),
+                transitionContent
+        );
+
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+
+        SequentialTransition finalScreen = new SequentialTransition(
+                fadeIn,
+                hold,
+                fadeOut
+        );
+
+        finalScreen.setOnFinished(event -> {
+            startCreditsSequence();
+        });
+
+        finalScreen.play();
+    }
+
+    private void startCreditsSequence() {
+        riverTransitionImage.setImage(null);
+
+        transitionTitle.setText("CREDITS");
+        transitionTitle.setTextFill(Color.web("#D9E1E8"));
+
+        transitionQuote.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        transitionQuote.setMinHeight(Region.USE_PREF_SIZE);
+        transitionQuote.setMaxHeight(Double.MAX_VALUE);
+
+        transitionQuote.setText(
+                "CREATED BY\n" +
+                        "JOSHUA SIMON\n\n" +
+
+                        "BUILT WITH\n" +
+                        "Java • JavaFX\n\n"
+
+        );
+
+        transitionQuote.setTextFill(Color.web("#789E9A"));
+
+        transitionFooter.setText(
+                "THANK YOU FOR PLAYING"
+        );
+
+        transitionFooter.setTextFill(Color.web("#D9E1E8"));
+
+        transitionContent.setOpacity(0.0);
+
+        FadeTransition creditsFadeIn = new FadeTransition(
+                Duration.seconds(2),
+                transitionContent
+        );
+
+        creditsFadeIn.setFromValue(0.0);
+        creditsFadeIn.setToValue(1.0);
+
+        PauseTransition creditsHold = new PauseTransition(
+                Duration.seconds(8)
+        );
+
+        FadeTransition creditsFadeOut = new FadeTransition(
+                Duration.seconds(3),
+                transitionContent
+        );
+
+        creditsFadeOut.setFromValue(1.0);
+        creditsFadeOut.setToValue(0.0);
+
+        SequentialTransition credits = new SequentialTransition(
+                creditsFadeIn,
+                creditsHold,
+                creditsFadeOut
+        );
+
+        credits.setOnFinished(event -> {
+            Timeline fadeEndingMusicOut = new Timeline(
+                    new KeyFrame(
+                            Duration.ZERO,
+                            new KeyValue(
+                                    endingMusic.volumeProperty(),
+                                    endingMusic.getVolume()
+                            )
+                    ),
+
+                    new KeyFrame(
+                            Duration.seconds(4),
+                            new KeyValue(
+                                    endingMusic.volumeProperty(),
+                                    0.0
+                            )
+                    )
+            );
+
+            fadeEndingMusicOut.setOnFinished(musicEvent -> {
+                endingMusic.stop();
+            });
+
+            fadeEndingMusicOut.play();
+        });
+
+        credits.play();
     }
 }

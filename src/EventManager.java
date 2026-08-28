@@ -46,12 +46,13 @@ public class EventManager {
     private Runnable startPanicDim;
     private Runnable startLightFlicker;
     private Runnable gameOverAction;
+    private Runnable startEnding;
 
     public EventManager(Creature creature, Runnable updateStatusLabels,
                         Consumer<String> addDialogue, Consumer<String> addChatDialogue, Consumer<String> addNoActionDialogue,
                         Consumer<String> addStatus, BiConsumer<String,
                     Integer> addEventStatus, Consumer<String> addNoActionStatus, Consumer<River> startRiverTransition,
-                        Runnable startPanicDim, Runnable startLightFlicker, Runnable gameOverAction) {
+                        Runnable startPanicDim, Runnable startLightFlicker, Runnable gameOverAction, Runnable startEnding) {
 
         this.creature = creature;
         this.updateStatusLabels = updateStatusLabels;
@@ -70,6 +71,8 @@ public class EventManager {
 
         this.gameOverAction = gameOverAction;
         gameOverActive = false;
+
+        this.startEnding = startEnding;
 
         currentRiver = River.RIVER_I;
         riverProgress = 0;
@@ -409,14 +412,18 @@ public class EventManager {
     private void completeEvent() {
         riverProgress++;
 
-        if (currentRiver == River.RIVER_I && riverProgress >= 10) {
+        if (currentRiver == River.RIVER_I && riverProgress >= 1) {
             riverProgress = 0;
 
             requestRiverTransition(River.RIVER_II);
-        } else if (currentRiver == River.RIVER_II && riverProgress >= 12) {
+        } else if (currentRiver == River.RIVER_II && riverProgress >= 1) {
             riverProgress = 0;
 
             requestRiverTransition(River.RIVER_III);
+        } else if (currentRiver == River.RIVER_III && riverProgress >= 1) {
+            riverProgress = 0;
+
+            startEnding.run();
         } else {
             scheduleNextEvent();
         }

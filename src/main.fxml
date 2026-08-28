@@ -8,156 +8,85 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <!-- THIS LAYOUT WAS REFACTORED WITH HELP FROM CHATGPT -->
 
-<AnchorPane prefHeight="720.0"
-            prefWidth="1280.0"
-            stylesheets="@style.css"
-            styleClass="app-root"
-            xmlns="http://javafx.com/javafx/25"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="Controller">
+<AnchorPane prefHeight="720.0" prefWidth="1280.0" styleClass="app-root" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
 
     <children>
 
-        <GridPane AnchorPane.topAnchor="0.0"
-                  AnchorPane.bottomAnchor="0.0"
-                  AnchorPane.leftAnchor="0.0"
-                  AnchorPane.rightAnchor="0.0"
-                  vgap="10.0"
-                  styleClass="main-grid">
+        <GridPane hgap="10.0" styleClass="main-grid" vgap="10.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
 
             <padding>
-                <Insets top="12.0"
-                        bottom="12.0"
-                        left="12.0"
-                        right="12.0" />
+                <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
             </padding>
 
-            <!--
-                39% ENTITY
-                1% VISIBLE GUTTER
-                25% BIO / ARTIFICIAL
-                35% STATUS
-            -->
+            <!-- FULLSCREEN COLUMN PROPORTIONS -->
             <columnConstraints>
 
-                <ColumnConstraints percentWidth="39.0"
-                                   hgrow="ALWAYS" />
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="40.0" />
 
-                <ColumnConstraints percentWidth="1.0" />
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="25.0" />
 
-                <ColumnConstraints percentWidth="25.0"
-                                   hgrow="ALWAYS" />
-
-                <ColumnConstraints percentWidth="35.0"
-                                   hgrow="ALWAYS" />
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="35.0" />
 
             </columnConstraints>
 
+            <!-- FULLSCREEN ROW PROPORTIONS -->
             <rowConstraints>
 
-                <RowConstraints percentHeight="30.0"
-                                vgrow="ALWAYS" />
+                <RowConstraints percentHeight="30.0" vgrow="ALWAYS" />
 
-                <RowConstraints percentHeight="30.0"
-                                vgrow="ALWAYS" />
+                <RowConstraints percentHeight="30.0" vgrow="ALWAYS" />
 
-                <RowConstraints percentHeight="25.0"
-                                vgrow="ALWAYS" />
+                <RowConstraints percentHeight="25.0" vgrow="ALWAYS" />
 
-                <RowConstraints percentHeight="15.0"
-                                vgrow="ALWAYS" />
+                <RowConstraints percentHeight="15.0" vgrow="ALWAYS" />
 
             </rowConstraints>
 
             <children>
 
                 <!-- ENTITY DISPLAY -->
-                <StackPane GridPane.columnIndex="0"
-                           GridPane.rowSpan="2"
-                           styleClass="panel,entity-panel">
+                <StackPane styleClass="panel,entity-panel" GridPane.rowSpan="2">
 
                     <padding>
-                        <Insets top="20.0"
-                                bottom="20.0"
-                                left="20.0"
-                                right="20.0" />
+                        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                     </padding>
 
                     <children>
 
-                        <ImageView fx:id="entityImageView"
-                                   fitWidth="520.0"
-                                   fitHeight="520.0"
-                                   preserveRatio="true"
-                                   smooth="true"
-                                   mouseTransparent="true" />
+                        <ImageView fx:id="entityImageView" fitHeight="438.0" fitWidth="480.0" mouseTransparent="true" preserveRatio="true" smooth="true" />
 
                     </children>
 
                 </StackPane>
 
-                <!-- VISIBLE SEPARATOR BETWEEN IMAGE AND STAT PANELS -->
-                <Region GridPane.columnIndex="1"
-                        GridPane.rowSpan="2"
-                        maxWidth="1.7976931348623157E308"
-                        maxHeight="1.7976931348623157E308"
-                        style="-fx-background-color: #090A0D;" />
-
                 <!-- BIOLOGICAL STATUS -->
-                <VBox alignment="CENTER"
-                      spacing="18.0"
-                      GridPane.columnIndex="2"
-                      GridPane.rowIndex="0"
-                      styleClass="panel,stat-panel">
+                <VBox alignment="CENTER" spacing="18.0" styleClass="panel,stat-panel" GridPane.columnIndex="1">
 
                     <padding>
-                        <Insets top="20.0"
-                                bottom="20.0"
-                                left="20.0"
-                                right="20.0" />
+                        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                     </padding>
 
                     <children>
 
-                        <Label text="BIOLOGICAL STATUS"
-                               styleClass="section-title" />
+                        <Label styleClass="section-title" text="BIOLOGICAL STATUS" />
 
-                        <VBox alignment="CENTER"
-                              spacing="11.0"
-                              styleClass="stat-list">
+                        <VBox alignment="CENTER" spacing="11.0" styleClass="stat-list">
 
                             <children>
 
-                                <Label fx:id="prideLabel"
-                                       text="PRIDE"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="prideLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="PRIDE" />
 
-                                <Label fx:id="gluttonyLabel"
-                                       text="GLUTTONY"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="gluttonyLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="GLUTTONY" />
 
-                                <Label fx:id="slothLabel"
-                                       text="SLOTH"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="slothLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="SLOTH" />
 
-                                <Label fx:id="wrathLabel"
-                                       text="WRATH"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="wrathLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="WRATH" />
 
                             </children>
 
@@ -168,53 +97,27 @@
                 </VBox>
 
                 <!-- ARTIFICIAL STATUS -->
-                <VBox alignment="CENTER"
-                      spacing="18.0"
-                      GridPane.columnIndex="2"
-                      GridPane.rowIndex="1"
-                      styleClass="panel,stat-panel">
+                <VBox alignment="CENTER" spacing="18.0" styleClass="panel,stat-panel" GridPane.columnIndex="1" GridPane.rowIndex="1">
 
                     <padding>
-                        <Insets top="20.0"
-                                bottom="20.0"
-                                left="20.0"
-                                right="20.0" />
+                        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                     </padding>
 
                     <children>
 
-                        <Label text="ARTIFICIAL STATUS"
-                               styleClass="section-title" />
+                        <Label styleClass="section-title" text="ARTIFICIAL STATUS" />
 
-                        <VBox alignment="CENTER"
-                              spacing="11.0"
-                              styleClass="stat-list">
+                        <VBox alignment="CENTER" spacing="11.0" styleClass="stat-list">
 
                             <children>
 
-                                <Label fx:id="temperatureLabel"
-                                       text="TEMPERATURE"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="temperatureLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="TEMPERATURE" />
 
-                                <Label fx:id="storageLabel"
-                                       text="STORAGE"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="storageLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="STORAGE" />
 
-                                <Label fx:id="powerLabel"
-                                       text="POWER"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="powerLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="POWER" />
 
-                                <Label fx:id="integrityLabel"
-                                       text="INTEGRITY"
-                                       maxWidth="1.7976931348623157E308"
-                                       alignment="CENTER"
-                                       styleClass="stat-label" />
+                                <Label fx:id="integrityLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="stat-label" text="INTEGRITY" />
 
                             </children>
 
@@ -225,29 +128,19 @@
                 </VBox>
 
                 <!-- STATUS -->
-                <VBox GridPane.columnIndex="3"
-                      GridPane.rowSpan="3"
-                      styleClass="panel,status-panel">
+                <VBox styleClass="panel,status-panel" GridPane.columnIndex="2" GridPane.rowSpan="3">
 
                     <padding>
-                        <Insets top="10.0"
-                                bottom="10.0"
-                                left="10.0"
-                                right="10.0" />
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                     </padding>
 
                     <children>
 
-                        <ScrollPane fx:id="statusScrollPane"
-                                    fitToWidth="true"
-                                    VBox.vgrow="ALWAYS"
-                                    styleClass="terminal-scroll">
+                        <ScrollPane fx:id="statusScrollPane" fitToWidth="true" styleClass="terminal-scroll" VBox.vgrow="ALWAYS">
 
                             <content>
 
-                                <VBox fx:id="statusBox"
-                                      spacing="7.0"
-                                      styleClass="status-box" />
+                                <VBox fx:id="statusBox" spacing="7.0" styleClass="status-box" />
 
                             </content>
 
@@ -258,31 +151,19 @@
                 </VBox>
 
                 <!-- DIALOGUE -->
-                <VBox GridPane.columnIndex="0"
-                      GridPane.columnSpan="3"
-                      GridPane.rowIndex="2"
-                      styleClass="panel,dialogue-panel">
+                <VBox styleClass="panel,dialogue-panel" GridPane.columnSpan="2" GridPane.rowIndex="2">
 
                     <padding>
-                        <Insets top="10.0"
-                                bottom="10.0"
-                                left="10.0"
-                                right="10.0" />
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                     </padding>
 
                     <children>
 
-                        <ScrollPane fx:id="dialogueScrollPane"
-                                    fitToWidth="true"
-                                    fitToHeight="true"
-                                    VBox.vgrow="ALWAYS"
-                                    styleClass="terminal-scroll,dialogue-scroll">
+                        <ScrollPane fx:id="dialogueScrollPane" fitToHeight="true" fitToWidth="true" styleClass="terminal-scroll,dialogue-scroll" VBox.vgrow="ALWAYS">
 
                             <content>
 
-                                <VBox fx:id="dialogueBox"
-                                      spacing="9.0"
-                                      styleClass="dialogue-box" />
+                                <VBox fx:id="dialogueBox" spacing="9.0" styleClass="dialogue-box" />
 
                             </content>
 
@@ -293,103 +174,67 @@
                 </VBox>
 
                 <!-- OPTIONS -->
-                <VBox GridPane.columnIndex="0"
-                      GridPane.columnSpan="4"
-                      GridPane.rowIndex="3"
-                      styleClass="panel,control-panel">
+                <VBox styleClass="panel,control-panel" GridPane.columnSpan="3" GridPane.rowIndex="3">
 
                     <padding>
-                        <Insets top="8.0"
-                                bottom="8.0"
-                                left="8.0"
-                                right="8.0" />
+                        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
                     </padding>
 
                     <children>
 
-                        <!-- BUTTONS MUST REMAIN DIRECT CHILDREN OF THIS GRIDPANE -->
-                        <GridPane hgap="7.0"
-                                  VBox.vgrow="ALWAYS"
-                                  styleClass="control-grid">
-
-                            <columnConstraints>
-
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-                                <ColumnConstraints percentWidth="12.5" />
-
-                            </columnConstraints>
-
-                            <rowConstraints>
-                                <RowConstraints percentHeight="100.0" />
-                            </rowConstraints>
+                        <StackPane VBox.vgrow="ALWAYS">
 
                             <children>
 
-                                <Button text="SUPPRESS"
-                                        mnemonicParsing="false"
-                                        onAction="#suppress"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="0" />
+                                <!-- BUTTONS MUST REMAIN DIRECT CHILDREN OF THIS GRIDPANE -->
+                                <GridPane fx:id="controlGrid" hgap="7.0" styleClass="control-grid">
 
-                                <Button text="COOLANT"
-                                        mnemonicParsing="false"
-                                        onAction="#coolant"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="1" />
+                                    <columnConstraints>
 
-                                <Button text="STIMULATE"
-                                        mnemonicParsing="false"
-                                        onAction="#stimulate"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="2" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
+                                        <ColumnConstraints percentWidth="12.5" />
 
-                                <Button text="CHARGE"
-                                        mnemonicParsing="false"
-                                        onAction="#charge"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="3" />
+                                    </columnConstraints>
 
-                                <Button text="PURGE"
-                                        mnemonicParsing="false"
-                                        onAction="#purge"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="4" />
+                                    <rowConstraints>
 
-                                <Button text="REPAIR"
-                                        mnemonicParsing="false"
-                                        onAction="#repair"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="5" />
+                                        <RowConstraints percentHeight="100.0" />
 
-                                <Button text="NOURISH"
-                                        mnemonicParsing="false"
-                                        onAction="#nourish"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="6" />
+                                    </rowConstraints>
 
-                                <Button text="RESTRAIN"
-                                        mnemonicParsing="false"
-                                        onAction="#restrain"
-                                        maxWidth="1.7976931348623157E308"
-                                        maxHeight="1.7976931348623157E308"
-                                        GridPane.columnIndex="7" />
+                                    <children>
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#suppress" text="SUPPRESS" GridPane.columnIndex="0" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#coolant" text="COOLANT" GridPane.columnIndex="1" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#stimulate" text="STIMULATE" GridPane.columnIndex="2" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#charge" text="CHARGE" GridPane.columnIndex="3" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#purge" text="PURGE" GridPane.columnIndex="4" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#repair" text="REPAIR" GridPane.columnIndex="5" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#nourish" text="NOURISH" GridPane.columnIndex="6" />
+
+                                        <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#restrain" text="RESTRAIN" GridPane.columnIndex="7" />
+
+                                    </children>
+
+                                </GridPane>
+
+                                <Button fx:id="terminateButton" disable="true" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#terminate" text="TERMINATE" visible="false" />
 
                             </children>
 
-                        </GridPane>
+                        </StackPane>
 
                     </children>
 
@@ -400,55 +245,21 @@
         </GridPane>
 
         <!-- RIVER / INTRO TRANSITION OVERLAY -->
-        <StackPane fx:id="transitionPane"
-                   visible="false"
-                   opacity="0.0"
-                   styleClass="overlay-pane"
-                   AnchorPane.topAnchor="0.0"
-                   AnchorPane.bottomAnchor="0.0"
-                   AnchorPane.leftAnchor="0.0"
-                   AnchorPane.rightAnchor="0.0">
+        <StackPane fx:id="transitionPane" opacity="0.0" styleClass="overlay-pane" visible="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
 
             <children>
 
-                <VBox fx:id="transitionContent"
-                      alignment="CENTER"
-                      spacing="22.0"
-                      opacity="0.0"
-                      maxWidth="1000.0"
-                      translateY="-35.0">
+                <VBox fx:id="transitionContent" alignment="CENTER" maxWidth="1000.0" opacity="0.0" spacing="22.0" translateY="-35.0">
 
                     <children>
 
-                        <ImageView fx:id="riverTransitionImage"
-                                   fitWidth="650.0"
-                                   fitHeight="400.0"
-                                   preserveRatio="true"
-                                   smooth="true" />
+                        <ImageView fx:id="riverTransitionImage" fitHeight="400.0" fitWidth="650.0" preserveRatio="true" smooth="true" />
 
-                        <Label fx:id="transitionTitle"
-                               text="SESSION INITIALIZING"
-                               textFill="WHITE"
-                               wrapText="true"
-                               alignment="CENTER"
-                               textAlignment="CENTER"
-                               maxWidth="900.0" />
+                        <Label fx:id="transitionTitle" alignment="CENTER" maxWidth="900.0" text="SESSION INITIALIZING" textAlignment="CENTER" textFill="WHITE" wrapText="true" />
 
-                        <Label fx:id="transitionQuote"
-                               text="Transition quote"
-                               textFill="WHITE"
-                               wrapText="true"
-                               alignment="CENTER"
-                               textAlignment="CENTER"
-                               maxWidth="900.0" />
+                        <Label fx:id="transitionQuote" alignment="CENTER" maxWidth="900.0" text="Transition quote" textAlignment="CENTER" textFill="WHITE" wrapText="true" />
 
-                        <Label fx:id="transitionFooter"
-                               text="OBSERVE CAREFULLY"
-                               textFill="WHITE"
-                               wrapText="true"
-                               alignment="CENTER"
-                               textAlignment="CENTER"
-                               maxWidth="900.0" />
+                        <Label fx:id="transitionFooter" alignment="CENTER" maxWidth="900.0" text="OBSERVE CAREFULLY" textAlignment="CENTER" textFill="WHITE" wrapText="true" />
 
                     </children>
 
@@ -459,37 +270,17 @@
         </StackPane>
 
         <!-- GAME OVER OVERLAY -->
-        <StackPane fx:id="gameOverPane"
-                   visible="false"
-                   opacity="0.0"
-                   styleClass="overlay-pane"
-                   AnchorPane.topAnchor="0.0"
-                   AnchorPane.bottomAnchor="0.0"
-                   AnchorPane.leftAnchor="0.0"
-                   AnchorPane.rightAnchor="0.0">
+        <StackPane fx:id="gameOverPane" opacity="0.0" styleClass="overlay-pane" visible="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
 
             <children>
 
-                <VBox fx:id="gameOverContent"
-                      alignment="CENTER"
-                      spacing="18.0"
-                      maxWidth="1200.0">
+                <VBox fx:id="gameOverContent" alignment="CENTER" maxWidth="1200.0" spacing="18.0">
 
                     <children>
 
-                        <ImageView fx:id="gameOverImage"
-                                   fitWidth="1000.0"
-                                   fitHeight="600.0"
-                                   preserveRatio="true"
-                                   smooth="true" />
+                        <ImageView fx:id="gameOverImage" fitHeight="600.0" fitWidth="1000.0" preserveRatio="true" smooth="true" />
 
-                        <Label fx:id="gameOverText"
-                               text="GAME OVER"
-                               textFill="WHITE"
-                               wrapText="true"
-                               alignment="CENTER"
-                               textAlignment="CENTER"
-                               maxWidth="1000.0" />
+                        <Label fx:id="gameOverText" alignment="CENTER" maxWidth="1000.0" text="GAME OVER" textAlignment="CENTER" textFill="WHITE" wrapText="true" />
 
                     </children>
 
