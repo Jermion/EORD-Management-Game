@@ -471,7 +471,7 @@ public class Controller {
                     ozlericSin != null && creature.getBiologicalSystem().getCondition(ozlericSin) == BioCondition.OZLERIC) {
                 double eventChance = Math.random();
 
-                if (eventChance < 1.0) {
+                if (eventChance < 0.45) {
                     startOzlericSmileyEvent();
                 } else {
                     scheduleNextOzlericLiveEvent();

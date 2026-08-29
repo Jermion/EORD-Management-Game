@@ -412,15 +412,15 @@ public class EventManager {
     private void completeEvent() {
         riverProgress++;
 
-        if (currentRiver == River.RIVER_I && riverProgress >= 1) {
+        if (currentRiver == River.RIVER_I && riverProgress >= 10) {
             riverProgress = 0;
 
             requestRiverTransition(River.RIVER_II);
-        } else if (currentRiver == River.RIVER_II && riverProgress >= 1) {
+        } else if (currentRiver == River.RIVER_II && riverProgress >= 12) {
             riverProgress = 0;
 
             requestRiverTransition(River.RIVER_III);
-        } else if (currentRiver == River.RIVER_III && riverProgress >= 1) {
+        } else if (currentRiver == River.RIVER_III && riverProgress >= 12) {
             riverProgress = 0;
 
             startEnding.run();
